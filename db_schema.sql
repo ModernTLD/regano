@@ -26,15 +26,25 @@ CREATE TABLE IF NOT EXISTS regano.sessions (
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS regano.contacts (
+	id		serial PRIMARY KEY,
+	owner_id	integer NOT NULL REFERENCES regano.users (id),
+	name		text NOT NULL,
+	email		text NOT NULL,
+	email_verified	boolean NOT NULL DEFAULT FALSE
+);
+
 CREATE TABLE IF NOT EXISTS regano.users (
 	id		serial PRIMARY KEY,
 	username	varchar(64) UNIQUE,
 	password	varchar, -- TODO: determine password storage
-	name		text NOT NULL,
-	email		text NOT NULL,
+	-- id of primary contact for this user
+	contact_id	integer NOT NULL DEFAULT 0
+				REFERENCES regano.contacts (id)
+				DEFERRABLE INITIALLY DEFERRED,
+	-- timestamp of user registration
 	registered	timestamp with time zone
-				NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	verified	boolean NOT NULL DEFAULT FALSE
+				NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) WITH (fillfactor = 90);
 
 CREATE TABLE IF NOT EXISTS regano.domains (
