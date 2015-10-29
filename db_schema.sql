@@ -19,7 +19,7 @@ CREATE SCHEMA IF NOT EXISTS regano AUTHORIZATION regano;
 
 CREATE TABLE IF NOT EXISTS regano.sessions (
 	id		uuid PRIMARY KEY,
-	user_id		integer NOT NULL REFERENCES regano.users (id),
+	user_id		bigint NOT NULL REFERENCES regano.users (id),
 	start		timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	last_seen	timestamp with time zone
@@ -27,19 +27,19 @@ CREATE TABLE IF NOT EXISTS regano.sessions (
 );
 
 CREATE TABLE IF NOT EXISTS regano.contacts (
-	id		serial PRIMARY KEY,
-	owner_id	integer NOT NULL REFERENCES regano.users (id),
+	id		bigserial PRIMARY KEY,
+	owner_id	bigint NOT NULL REFERENCES regano.users (id),
 	name		text NOT NULL,
 	email		text NOT NULL,
 	email_verified	boolean NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS regano.users (
-	id		serial PRIMARY KEY,
+	id		bigserial PRIMARY KEY,
 	username	varchar(64) UNIQUE,
 	password	varchar, -- TODO: determine password storage
 	-- id of primary contact for this user
-	contact_id	integer NOT NULL DEFAULT 0
+	contact_id	bigint NOT NULL DEFAULT 0
 				REFERENCES regano.contacts (id)
 				DEFERRABLE INITIALLY DEFERRED,
 	-- timestamp of user registration
@@ -48,9 +48,9 @@ CREATE TABLE IF NOT EXISTS regano.users (
 ) WITH (fillfactor = 90);
 
 CREATE TABLE IF NOT EXISTS regano.domains (
-	id		serial PRIMARY KEY,
+	id		bigserial PRIMARY KEY,
 	domain_name	text UNIQUE,
-	owner_id	integer NOT NULL REFERENCES regano.users (id),
+	owner_id	bigint NOT NULL REFERENCES regano.users (id),
 	registered	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	expiration	timestamp with time zone NOT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS regano.domains (
 );
 
 CREATE TABLE IF NOT EXISTS regano.domain_records (
-	id		serial PRIMARY KEY,
-	domain_id	integer NOT NULL REFERENCES regano.domains (id),
+	id		bigserial PRIMARY KEY,
+	domain_id	bigint NOT NULL REFERENCES regano.domains (id),
 	-- TODO: how exactly to store a DNS record?
 );
