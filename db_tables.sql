@@ -11,11 +11,7 @@
 --  WHATSOEVER WHETHER EXPLICIT OR IMPLIED.
 
 
--- The role 'regano' must already exist.
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
-
-CREATE SCHEMA IF NOT EXISTS regano AUTHORIZATION regano;
+-- The type definitions in db_types.sql must already be installed.
 
 CREATE TABLE IF NOT EXISTS regano.sessions (
 	id		uuid PRIMARY KEY,
@@ -61,5 +57,8 @@ CREATE TABLE IF NOT EXISTS regano.domains (
 CREATE TABLE IF NOT EXISTS regano.domain_records (
 	id		bigserial PRIMARY KEY,
 	domain_id	bigint NOT NULL REFERENCES regano.domains (id),
-	-- TODO: how exactly to store a DNS record?
-);
+	class		regano.dns_record_class NOT NULL DEFAULT 'IN',
+	type		regano.dns_record_type NOT NULL,
+	label		text NOT NULL,
+	-- TODO: define storage for values of each type
+) WITH (fillfactor = 90);
