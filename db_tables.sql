@@ -61,6 +61,33 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 	domain_id	bigint NOT NULL REFERENCES regano.domains (id),
 	class		regano.dns_record_class NOT NULL DEFAULT 'IN',
 	type		regano.dns_record_type NOT NULL,
-	label		text NOT NULL,
-	-- TODO: define storage for values of each type
+	ttl		integer,
+	name		regano.dns_name NOT NULL,
+	-- typed storage for DNS records
+	data_name	regano.dns_name,
+	data_text	text,
+	data_RR_SOA	regano.dns_RR_SOA,
+	data_RR_A	regano.dns_RR_A,
+	data_RR_AAAA	regano.dns_RR_AAAA,
+	data_RR_DS	regano.dns_RR_DS,
+	-- constraints to ensure proper usage
+	-- - types using "data_name"
+	CHECK(type IN ('CNAME', 'DNAME', 'NS', 'PTR')
+		OR data_name IS NULL),
+	CHECK(type NOT IN ('CNAME', 'DNAME', 'NS', 'PTR')
+		OR data_name IS NOT NULL),
+	-- - types using "data_text"
+	CHECK(type IN ('SPF', 'TXT') OR data_text IS NULL),
+	CHECK(type != 'TXT' OR data_text IS NOT NULL),
+	-- TODO: implement validation of SPF data
+	CHECK(type != 'SPF' OR data_text IS NOT NULL),
+	-- - types using specific fields
+	CHECK(type  = 'SOA' OR data_RR_SOA IS NULL),
+	CHECK(type != 'SOA' OR data_RR_SOA IS NOT NULL),
+	CHECK(type  = 'A' OR data_RR_A IS NULL),
+	CHECK(type != 'A' OR data_RR_A IS NOT NULL),
+	CHECK(type  = 'AAAA' OR data_RR_AAAA IS NULL),
+	CHECK(type != 'AAAA' OR data_RR_AAAA IS NOT NULL),
+	CHECK(type  = 'DS' OR data_RR_DS IS NULL),
+	CHECK(type != 'DS' OR data_RR_DS IS NOT NULL)
 ) WITH (fillfactor = 90);
