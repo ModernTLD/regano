@@ -22,7 +22,7 @@ CREATE TYPE regano.dns_record_class AS ENUM (
 	'IN',	-- Internet
 	'CS',	-- CSNET (obsolete even before RFC 1035)
 	'CH',	-- CHAOSnet
-	'HS',	-- Hesiod
+	'HS'	-- Hesiod
 );
 
 -- The allowed record types are a subset of those supported in BIND.
