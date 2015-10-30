@@ -41,6 +41,15 @@ CREATE DOMAIN regano.dns_fqdn AS regano.dns_name
 CREATE DOMAIN regano.dns_email AS regano.dns_fqdn
 	CHECK(VALUE LIKE '%.%.%.');
 
+ALTER DOMAIN regano.uint8bit		OWNER TO regano;
+ALTER DOMAIN regano.uint16bit		OWNER TO regano;
+ALTER DOMAIN regano.uint32bit		OWNER TO regano;
+ALTER DOMAIN regano.dns_interval	OWNER TO regano;
+ALTER DOMAIN regano.hexstring		OWNER TO regano;
+ALTER DOMAIN regano.dns_name		OWNER TO regano;
+ALTER DOMAIN regano.dns_fqdn		OWNER TO regano;
+ALTER DOMAIN regano.dns_email		OWNER TO regano;
+
 -- These are the DNS record classes defined in RFC 1035.
 CREATE TYPE regano.dns_record_class AS ENUM (
 	'IN',	-- Internet
@@ -72,6 +81,9 @@ CREATE TYPE regano.dns_record_type AS ENUM (
 	'TXT'		-- RFC 1035: general descriptive text
 );
 
+ALTER TYPE regano.dns_record_class	OWNER TO regano;
+ALTER TYPE regano.dns_record_type	OWNER TO regano;
+
 -- SOA RDATA per RFC 1035 3.3.13
 CREATE TYPE regano.dns_RR_SOA AS (
 	-- MNAME:	zone name
@@ -94,11 +106,13 @@ CREATE TYPE regano.dns_RR_SOA AS (
 CREATE DOMAIN regano.dns_RR_A AS inet
 	CONSTRAINT "an A record must hold an IPv4 address"
 		CHECK(family(VALUE) = 4 AND masklen(VALUE) = 32);
+ALTER DOMAIN regano.dns_RR_A		OWNER TO regano;
 
 -- AAAA RDATA per RFC 1886
 CREATE DOMAIN regano.dns_RR_AAAA AS inet
 	CONSTRAINT "an AAAA record must hold an IPv6 address"
 		CHECK(family(VALUE) = 6 AND masklen(VALUE) = 128);
+ALTER DOMAIN regano.dns_RR_AAAA		OWNER TO regano;
 
 -- TODO: CERT RDATA per RFC 2538?
 
@@ -115,6 +129,7 @@ CREATE TYPE regano.dns_RR_DS AS (
 	digest_type	regano.uint8bit,
 	digest		regano.hexstring
 );
+ALTER TYPE regano.dns_RR_DS		OWNER TO regano;
 
 -- TODO: IPSECKEY RDATA per RFC 4025?
 
@@ -125,6 +140,7 @@ CREATE TYPE regano.dns_RR_MX AS (
 	preference	regano.uint16bit,
 	exchange	regano.dns_name
 );
+ALTER TYPE regano.dns_RR_MX		OWNER TO regano;
 
 -- TODO: NAPTR RDATA per RFC 2915?
 
@@ -146,6 +162,7 @@ CREATE TYPE regano.dns_RR_SRV AS (
 	port		regano.uint16bit,
 	target		regano.dns_fqdn
 );
+ALTER TYPE regano.dns_RR_SRV		OWNER TO regano;
 
 -- TODO: SSHFP RDATA per RFC 4255?
 

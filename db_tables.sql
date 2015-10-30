@@ -91,3 +91,10 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 	CHECK(type  = 'DS' OR data_RR_DS IS NULL),
 	CHECK(type != 'DS' OR data_RR_DS IS NOT NULL)
 ) WITH (fillfactor = 90);
+
+
+ALTER TABLE regano.users OWNER TO regano;
+ALTER TABLE regano.sessions OWNER TO regano;
+ALTER TABLE regano.contacts OWNER TO regano;
+ALTER TABLE regano.domains OWNER TO regano;
+ALTER TABLE regano.domain_records OWNER TO regano;
