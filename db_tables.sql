@@ -13,6 +13,17 @@
 
 -- The type definitions in db_types.sql must already be installed.
 
+CREATE TABLE IF NOT EXISTS regano.users (
+	id		bigserial PRIMARY KEY,
+	username	varchar(64) UNIQUE,
+	password	varchar, -- TODO: determine password storage
+	-- id of primary contact for this user
+	contact_id	bigint NOT NULL DEFAULT 0,
+	-- timestamp of user registration
+	registered	timestamp with time zone
+				NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS regano.sessions (
 	id		uuid PRIMARY KEY,
 	user_id		bigint NOT NULL REFERENCES regano.users (id),
@@ -28,20 +39,11 @@ CREATE TABLE IF NOT EXISTS regano.contacts (
 	name		text NOT NULL,
 	email		text NOT NULL,
 	email_verified	boolean NOT NULL DEFAULT FALSE
-);
-
-CREATE TABLE IF NOT EXISTS regano.users (
-	id		bigserial PRIMARY KEY,
-	username	varchar(64) UNIQUE,
-	password	varchar, -- TODO: determine password storage
-	-- id of primary contact for this user
-	contact_id	bigint NOT NULL DEFAULT 0
-				REFERENCES regano.contacts (id)
-				DEFERRABLE INITIALLY DEFERRED,
-	-- timestamp of user registration
-	registered	timestamp with time zone
-				NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) WITH (fillfactor = 90);
+
+ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
+	FOREIGN KEY (contact_id) REFERENCES regano.contacts (id)
+				 DEFERRABLE INITIALLY DEFERRED;
 
 CREATE TABLE IF NOT EXISTS regano.domains (
 	id		bigserial PRIMARY KEY,
