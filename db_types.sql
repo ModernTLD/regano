@@ -168,3 +168,43 @@ ALTER TYPE regano.dns_RR_SRV		OWNER TO regano;
 
 -- TXT RDATA per RFC 1035 3.3.14
 -- use common "data_text" field
+
+
+--
+-- Any domain is in one of 6 states:
+--
+--  - RESERVED
+--	Not available for registration.
+--  - ELSEWHERE
+--	Not in a TLD managed by this server.
+--  - AVAILABLE
+--	May be registered.
+--  - PENDING
+--	Pre-registered but owning account not yet validated.
+--  - REGISTERED
+--	Currently registered and active.
+--  - EXPIRED
+--	Registration has expired, but has not yet been released.
+
+CREATE TYPE regano.domain_status AS ENUM (
+	'RESERVED',
+	'ELSEWHERE',
+	'AVAILABLE',
+	'PENDING',
+	'REGISTERED',
+	'EXPIRED'
+);
+ALTER TYPE regano.domain_status		OWNER TO regano;
+
+--
+-- Each registered domain is in one of 3 modes:
+--
+--  - INLINE
+--	All records for this domain are in the main TLD zone.
+--  - HOSTED
+--	This domain has its own zone on the main TLD server.
+--  - DELEGATED
+--	This domain has its own authoritative server(s).
+
+CREATE TYPE regano.domain_mode AS ENUM ('INLINE', 'HOSTED', 'DELEGATED');
+ALTER TYPE regano.domain_mode		OWNER TO regano;
