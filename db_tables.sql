@@ -57,13 +57,17 @@ CREATE TABLE IF NOT EXISTS regano.bailiwicks (
 -- Domains reserved at second-level, just inside every bailiwick
 CREATE TABLE IF NOT EXISTS regano.reserved_domains (
 	domain_name	regano.dns_label PRIMARY KEY,
-	reason		text NOT NULL
+	reason		text NOT NULL,
+	CONSTRAINT "Reserved domains must be entered as lowercase"
+		CHECK(lower(domain_name) = domain_name)
 );
 
 -- Domains pending (pre-registered, user not yet verified, etc.)
 CREATE TABLE IF NOT EXISTS regano.pending_domains (
 	domain_name	regano.dns_fqdn PRIMARY KEY
 );
+CREATE UNIQUE INDEX pending_domains_domain_name_lower_case_unique
+	ON regano.pending_domains (lower(domain_name));
 
 -- Domains registered in this instance
 CREATE TABLE IF NOT EXISTS regano.domains (
