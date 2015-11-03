@@ -48,6 +48,23 @@ ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
 	FOREIGN KEY (contact_id) REFERENCES regano.contacts (id)
 				 DEFERRABLE INITIALLY DEFERRED;
 
+-- Domains under which this instance can process registrations
+CREATE TABLE IF NOT EXISTS regano.bailiwicks (
+	domain_tail	text PRIMARY KEY
+				CHECK(domain_tail LIKE '.%.')
+);
+
+-- Domains reserved at second-level, just inside every bailiwick
+CREATE TABLE IF NOT EXISTS regano.reserved_domains (
+	domain_name	regano.dns_label PRIMARY KEY,
+	reason		text NOT NULL
+);
+
+-- Domains pending (pre-registered, user not yet verified, etc.)
+CREATE TABLE IF NOT EXISTS regano.pending_domains (
+	domain_name	regano.dns_fqdn PRIMARY KEY
+);
+
 -- Domains registered in this instance
 CREATE TABLE IF NOT EXISTS regano.domains (
 	id		bigserial PRIMARY KEY,
@@ -97,5 +114,8 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 ALTER TABLE regano.users OWNER TO regano;
 ALTER TABLE regano.sessions OWNER TO regano;
 ALTER TABLE regano.contacts OWNER TO regano;
+ALTER TABLE regano.bailiwicks OWNER TO regano;
+ALTER TABLE regano.reserved_domains OWNER TO regano;
+ALTER TABLE regano.pending_domains OWNER TO regano;
 ALTER TABLE regano.domains OWNER TO regano;
 ALTER TABLE regano.domain_records OWNER TO regano;
