@@ -32,9 +32,13 @@ CREATE DOMAIN regano.dns_interval AS interval
 -- This is binary data, as hexadecimal digits.
 CREATE DOMAIN regano.hexstring AS text
 	CHECK(VALUE SIMILAR TO '([0123456789ABCDEF]{2})+');
+-- This is a single label in the DNS.
+CREATE DOMAIN regano.dns_label AS text
+	CHECK(octet_length(VALUE) <= 63)	-- per RFC 1035 2.3.4
+	CHECK(VALUE NOT LIKE '%.%');
 -- This is a name in the DNS.
 CREATE DOMAIN regano.dns_name AS text
-	CHECK(octet_length(VALUE) <= 255); -- per RFC 1035 2.3.4
+	CHECK(octet_length(VALUE) <= 255);	-- per RFC 1035 2.3.4
 -- This is a Fully Qualified Domain Name.
 CREATE DOMAIN regano.dns_fqdn AS regano.dns_name
 	CHECK(VALUE LIKE '%.');
