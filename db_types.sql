@@ -55,6 +55,16 @@ ALTER DOMAIN regano.dns_name		OWNER TO regano;
 ALTER DOMAIN regano.dns_fqdn		OWNER TO regano;
 ALTER DOMAIN regano.dns_email		OWNER TO regano;
 
+-- This bundles together type information, two salts, and a password hash.
+CREATE TYPE regano.password AS (
+	-- external digest
+	xdigest		varchar(16),
+	-- salt for external digest
+	xsalt		text,
+	-- hashed password
+	digest		text
+);
+
 -- These are the DNS record classes defined in RFC 1035.
 CREATE TYPE regano.dns_record_class AS ENUM (
 	'IN',	-- Internet

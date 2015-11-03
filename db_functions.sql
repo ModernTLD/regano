@@ -14,6 +14,7 @@
 -- The type definitions in db_types.sql must already be installed.
 -- The table definitions in db_tables.sql are needed for these to actually work.
 
+-- Inquire about the status of a domain.
 CREATE OR REPLACE FUNCTION regano.domain_status
 	(domain_ regano.dns_fqdn)
 	RETURNS regano.domain_status AS $$
@@ -62,5 +63,33 @@ BEGIN
 
     RETURN 'AVAILABLE';
 END;
-$$ LANGUAGE plpgsql STABLE STRICT;
+$$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano.domain_status (dns_fqdn)	OWNER TO regano;
+
+
+-- Create a new user account.
+CREATE OR REPLACE FUNCTION regano.user_register
+	(text, regano.password, text, text)
+	RETURNS void AS $$
+DECLARE
+    username_		ALIAS FOR $1;
+    password_		ALIAS FOR $2;
+    contact_name	ALIAS FOR $3;
+    contact_email	ALIAS FOR $4;
+
+    new_user_id		bigint; -- row ID of new user record
+    new_contact_id	bigint; -- row ID of new user's primary contact record
+BEGIN
+	-- TODO: make algorithm and iterations for crypt() configurable
+    INSERT INTO users (username, password)
+	VALUES (username_, ROW(password_.xdigest, password_.xsalt,
+				crypt(password_.digest, gen_salt('bf', 10))))
+	RETURNING id INTO STRICT new_user_id;
+    INSERT INTO contacts (owner_id, name, email)
+	VALUES (new_user_id, contact_name, contact_email)
+	RETURNING id INTO STRICT new_contact_id;
+    UPDATE users SET contact_id = new_contact_id WHERE id = new_user_id;
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano.user_register (text, regano.password, text, text)
+	OWNER TO regano;

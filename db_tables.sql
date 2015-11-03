@@ -17,13 +17,13 @@
 CREATE TABLE IF NOT EXISTS regano.users (
 	id		bigserial PRIMARY KEY,
 	username	varchar(64) UNIQUE,
-	password	varchar, -- TODO: determine password storage
+	password	regano.password,
 	-- id of primary contact for this user
 	contact_id	bigint NOT NULL DEFAULT 0,
 	-- timestamp of user registration
 	registered	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+) WITH (fillfactor = 90);
 
 -- Active sessions
 CREATE TABLE IF NOT EXISTS regano.sessions (
