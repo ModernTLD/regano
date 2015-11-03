@@ -64,7 +64,8 @@ BEGIN
     RETURN 'AVAILABLE';
 END;
 $$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
-ALTER FUNCTION regano.domain_status (dns_fqdn)	OWNER TO regano;
+ALTER FUNCTION regano.domain_status (regano.dns_fqdn)
+	OWNER TO regano;
 
 
 -- Create a new user account.
