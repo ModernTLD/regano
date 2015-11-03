@@ -13,6 +13,7 @@
 
 -- The type definitions in db_types.sql must already be installed.
 
+-- Users
 CREATE TABLE IF NOT EXISTS regano.users (
 	id		bigserial PRIMARY KEY,
 	username	varchar(64) UNIQUE,
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS regano.users (
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Active sessions
 CREATE TABLE IF NOT EXISTS regano.sessions (
 	id		uuid PRIMARY KEY,
 	user_id		bigint NOT NULL REFERENCES regano.users (id),
@@ -33,6 +35,7 @@ CREATE TABLE IF NOT EXISTS regano.sessions (
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Contact information for users and domains
 CREATE TABLE IF NOT EXISTS regano.contacts (
 	id		bigserial PRIMARY KEY,
 	owner_id	bigint NOT NULL REFERENCES regano.users (id),
@@ -45,6 +48,7 @@ ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
 	FOREIGN KEY (contact_id) REFERENCES regano.contacts (id)
 				 DEFERRABLE INITIALLY DEFERRED;
 
+-- Domains registered in this instance
 CREATE TABLE IF NOT EXISTS regano.domains (
 	id		bigserial PRIMARY KEY,
 	domain_name	text UNIQUE,
@@ -56,6 +60,7 @@ CREATE TABLE IF NOT EXISTS regano.domains (
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- DNS records hosted by this instance
 CREATE TABLE IF NOT EXISTS regano.domain_records (
 	id		bigserial PRIMARY KEY,
 	domain_id	bigint NOT NULL REFERENCES regano.domains (id),
