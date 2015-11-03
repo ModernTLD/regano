@@ -51,7 +51,7 @@ ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
 -- Domains registered in this instance
 CREATE TABLE IF NOT EXISTS regano.domains (
 	id		bigserial PRIMARY KEY,
-	domain_name	text UNIQUE,
+	domain_name	regano.dns_fqdn UNIQUE,
 	owner_id	bigint NOT NULL REFERENCES regano.users (id),
 	registered	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP,
