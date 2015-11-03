@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS regano.domains (
 	last_update	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE UNIQUE INDEX domains_domain_name_lower_case_unique
+	ON regano.domains (lower(domain_name));
 
 -- DNS records hosted by this instance
 CREATE TABLE IF NOT EXISTS regano.domain_records (
