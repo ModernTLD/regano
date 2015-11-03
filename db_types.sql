@@ -58,12 +58,20 @@ ALTER DOMAIN regano.dns_email		OWNER TO regano;
 -- This bundles together type information, two salts, and a password hash.
 CREATE TYPE regano.password AS (
 	-- external digest
-	xdigest		varchar(16),
+	xdigest		text,
 	-- salt for external digest
 	xsalt		text,
-	-- hashed password
+	-- hashed password (with internal salt)
 	digest		text
 );
+-- The password type is used both for storing passwords in the DB and for
+-- communications between the DB and frontend.  In the DB, the "digest"
+-- field stores a digest value from crypt().  When reading salts, the
+-- "xdigest" and "xsalt" fields contain the external digest algorithm and
+-- external salt, while "digest" is null.  When attempting a login, the
+-- "digest" field contains the password, salted and hashed according to
+-- "xdigest" and "xsalt", which the DB will run through crypt() and then
+-- compare with the stored password.  If they match, a session is opened.
 
 -- These are the DNS record classes defined in RFC 1035.
 CREATE TYPE regano.dns_record_class AS ENUM (

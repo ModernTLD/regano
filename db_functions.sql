@@ -94,3 +94,23 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano.user_register (text, regano.password, text, text)
 	OWNER TO regano;
+
+-- Get the external digest algorithm and salt for a user.
+CREATE OR REPLACE FUNCTION regano.user_get_salt_info
+	(username_ text)
+	RETURNS regano.password AS $$
+DECLARE
+    password_	regano.password;
+BEGIN
+    SELECT (password).xdigest, (password).xsalt INTO password_
+	FROM regano.users WHERE (username = username_);
+    IF NOT FOUND THEN
+	-- return an unspecified record to impede timing attacks
+	SELECT (password).xdigest, (password).xsalt INTO password_
+	    FROM regano.users FETCH FIRST 1 ROW ONLY;
+    END IF;
+
+    RETURN password_;
+END;
+$$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano.user_get_salt_info (text)	OWNER TO regano;
