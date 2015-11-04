@@ -163,22 +163,39 @@ $$ LANGUAGE SQL VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.session_logout (uuid)
 	OWNER TO regano;
 
--- Retreive username for a session.
+-- Retrieve username for a session, update session activity timestamp, and
+-- perform auto-logout if the session has expired.
 CREATE OR REPLACE FUNCTION regano_api.session_check
 	(id uuid)
 	RETURNS text AS $$
 DECLARE
+    max_age	CONSTANT interval NOT NULL
+		    := (regano.config_get('session/max_age')).interval;
+    max_idle	CONSTANT interval NOT NULL
+		    := (regano.config_get('session/max_idle')).interval;
+
+    session	regano.sessions%ROWTYPE;
     username	text;
 BEGIN
-    -- TODO: implement session expiration
-    SELECT regano.users.username INTO username
-	FROM regano.sessions JOIN regano.users
-	    ON (regano.sessions.user_id = regano.users.id)
-	WHERE regano.sessions.id = session_check.id;
+    SELECT * INTO session
+	FROM regano.sessions WHERE regano.sessions.id = session_check.id;
     IF FOUND THEN
-	UPDATE regano.sessions SET last_seen = CURRENT_TIMESTAMP
-	    WHERE regano.sessions.id = session_check.id;
+	IF ((CURRENT_TIMESTAMP - session.last_seen) > max_idle) OR
+	   ((CURRENT_TIMESTAMP - session.start) > max_age) THEN
+	    -- session is expired
+	    PERFORM regano_api.session_logout(session.id);
+	    RETURN NULL;
+	ELSE
+	    -- update activity timestamp
+	    UPDATE regano.sessions SET last_seen = CURRENT_TIMESTAMP
+		WHERE regano.sessions.id = session_check.id;
+	END IF;
+    ELSE
+	-- no such session exists
+	RETURN NULL;
     END IF;
+    SELECT regano.users.username INTO STRICT username
+	FROM regano.users WHERE regano.users.id = session.user_id;
     RETURN username;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
