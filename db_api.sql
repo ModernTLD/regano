@@ -2,6 +2,8 @@
 --
 -- Uses PostgreSQL extensions.
 --
+-- These functions are intended to be called from the Web UI or other frontend.
+--
 --  Regano is a domain registration system for OpenNIC TLDs written in
 --  Perl.  This file is part of Regano.
 --

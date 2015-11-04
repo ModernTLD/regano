@@ -13,6 +13,15 @@
 
 -- The type definitions in db_types.sql must already be installed.
 
+-- Internal configuration options
+CREATE TABLE IF NOT EXISTS regano.config (
+	key		text PRIMARY KEY,
+	number		bigint,
+	interval	interval,
+	text		text,
+	CHECK(number IS NOT NULL OR interval IS NOT NULL OR text IS NOT NULL)
+) WITH (fillfactor = 95);
+
 -- Users
 CREATE TABLE IF NOT EXISTS regano.users (
 	id		bigserial PRIMARY KEY,
@@ -115,6 +124,7 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 ) WITH (fillfactor = 90);
 
 
+ALTER TABLE regano.config OWNER TO regano;
 ALTER TABLE regano.users OWNER TO regano;
 ALTER TABLE regano.sessions OWNER TO regano;
 ALTER TABLE regano.contacts OWNER TO regano;
