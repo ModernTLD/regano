@@ -15,7 +15,7 @@
 -- The table definitions in db_tables.sql are needed for these to actually work.
 
 -- Inquire about the status of a domain.
-CREATE OR REPLACE FUNCTION regano.domain_status
+CREATE OR REPLACE FUNCTION regano_api.domain_status
 	(domain_ regano.dns_fqdn)
 	RETURNS regano.domain_status AS $$
 DECLARE
@@ -64,12 +64,12 @@ BEGIN
     RETURN 'AVAILABLE';
 END;
 $$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
-ALTER FUNCTION regano.domain_status (regano.dns_fqdn)
+ALTER FUNCTION regano_api.domain_status (regano.dns_fqdn)
 	OWNER TO regano;
 
 
 -- Create a new user account.
-CREATE OR REPLACE FUNCTION regano.user_register
+CREATE OR REPLACE FUNCTION regano_api.user_register
 	(text, regano.password, text, text)
 	RETURNS void AS $$
 DECLARE
@@ -92,11 +92,11 @@ BEGIN
     UPDATE users SET contact_id = new_contact_id WHERE id = new_user_id;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
-ALTER FUNCTION regano.user_register (text, regano.password, text, text)
+ALTER FUNCTION regano_api.user_register (text, regano.password, text, text)
 	OWNER TO regano;
 
 -- Get the external digest algorithm and salt for a user.
-CREATE OR REPLACE FUNCTION regano.user_get_salt_info
+CREATE OR REPLACE FUNCTION regano_api.user_get_salt_info
 	(username_ text)
 	RETURNS regano.password AS $$
 DECLARE
@@ -113,4 +113,5 @@ BEGIN
     RETURN password_;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
-ALTER FUNCTION regano.user_get_salt_info (text)	OWNER TO regano;
+ALTER FUNCTION regano_api.user_get_salt_info (text)
+	OWNER TO regano;

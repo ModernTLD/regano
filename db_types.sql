@@ -16,6 +16,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 CREATE SCHEMA IF NOT EXISTS regano AUTHORIZATION regano;
+CREATE SCHEMA IF NOT EXISTS regano_api AUTHORIZATION regano;
 
 -- This is an unsigned 8 bit integer.
 CREATE DOMAIN regano.uint8bit AS smallint
