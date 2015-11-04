@@ -115,3 +115,70 @@ END;
 $$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.user_get_salt_info (text)
 	OWNER TO regano;
+
+-- Begin a session for a user.
+CREATE OR REPLACE FUNCTION regano_api.user_login
+	(text, regano.password)
+	RETURNS uuid AS $$
+<<var>>
+DECLARE
+    username	ALIAS FOR $1;
+    password	ALIAS FOR $2;
+
+    user_id	bigint;	-- row ID of user record
+    stored_pw	text;	-- password hash from database
+    session_id	uuid;	-- session ID
+BEGIN
+    SELECT id, (regano.users.password).digest INTO user_id, stored_pw
+	FROM regano.users WHERE (regano.users.username = var.username);
+    IF NOT FOUND THEN
+	-- fake a stored password to impede timing attacks
+	-- TODO: make algorithm and iterations for fake crypt() configurable
+	stored_pw := gen_salt('bf', 10);
+    END IF;
+    -- verify password; note that a bare salt cannot match any hash
+    IF crypt(password.digest, stored_pw) = stored_pw THEN
+	-- login successful
+	INSERT INTO regano.sessions (id, user_id)
+	    VALUES (gen_random_uuid(), user_id)
+	    RETURNING id INTO STRICT session_id;
+	RETURN session_id;
+    ELSE
+	-- login failed
+	RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.user_login (text, regano.password)
+	OWNER TO regano;
+
+-- End a session.
+CREATE OR REPLACE FUNCTION regano_api.session_logout
+	(session uuid)
+	RETURNS void AS $$
+DELETE FROM regano.sessions WHERE id = $1
+$$ LANGUAGE SQL VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.session_logout (uuid)
+	OWNER TO regano;
+
+-- Retreive username for a session.
+CREATE OR REPLACE FUNCTION regano_api.session_check
+	(id uuid)
+	RETURNS text AS $$
+DECLARE
+    username	text;
+BEGIN
+    -- TODO: implement session expiration
+    SELECT regano.users.username INTO username
+	FROM regano.sessions JOIN regano.users
+	    ON (regano.sessions.user_id = regano.users.id)
+	WHERE regano.sessions.id = session_check.id;
+    IF FOUND THEN
+	UPDATE regano.sessions SET last_seen = CURRENT_TIMESTAMP
+	    WHERE regano.sessions.id = session_check.id;
+    END IF;
+    RETURN username;
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.session_check (uuid)
+	OWNER TO regano;
