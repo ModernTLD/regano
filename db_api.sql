@@ -80,13 +80,18 @@ DECLARE
     contact_name	ALIAS FOR $3;
     contact_email	ALIAS FOR $4;
 
+    crypt_alg		CONSTANT text NOT NULL
+			    := (regano.config_get('auth/crypt')).text;
+    crypt_iter		CONSTANT integer NOT NULL
+			    := (regano.config_get('auth/crypt')).number;
+
     new_user_id		bigint; -- row ID of new user record
     new_contact_id	bigint; -- row ID of new user's primary contact record
 BEGIN
-	-- TODO: make algorithm and iterations for crypt() configurable
     INSERT INTO users (username, password)
 	VALUES (username_, ROW(password_.xdigest, password_.xsalt,
-				crypt(password_.digest, gen_salt('bf', 10))))
+				crypt(password_.digest,
+				      gen_salt(crypt_alg, crypt_iter))))
 	RETURNING id INTO STRICT new_user_id;
     INSERT INTO contacts (owner_id, name, email)
 	VALUES (new_user_id, contact_name, contact_email)
@@ -127,6 +132,11 @@ DECLARE
     username	ALIAS FOR $1;
     password	ALIAS FOR $2;
 
+    crypt_alg	CONSTANT text NOT NULL
+		    := (regano.config_get('auth/crypt')).text;
+    crypt_iter	CONSTANT integer NOT NULL
+		    := (regano.config_get('auth/crypt')).number;
+
     user_id	bigint;	-- row ID of user record
     stored_pw	text;	-- password hash from database
     session_id	uuid;	-- session ID
@@ -135,8 +145,7 @@ BEGIN
 	FROM regano.users WHERE (regano.users.username = var.username);
     IF NOT FOUND THEN
 	-- fake a stored password to impede timing attacks
-	-- TODO: make algorithm and iterations for fake crypt() configurable
-	stored_pw := gen_salt('bf', 10);
+	stored_pw := gen_salt(crypt_alg, crypt_iter);
     END IF;
     -- verify password; note that a bare salt cannot match any hash
     IF crypt(password.digest, stored_pw) = stored_pw THEN
