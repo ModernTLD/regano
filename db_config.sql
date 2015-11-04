@@ -21,6 +21,9 @@
 --	iteration count to use with crypt()
 SELECT regano.config_set('auth/crypt', 'bf');
 SELECT regano.config_set('auth/crypt', 10);
+-- Note that the default 'bf' algorithm only accepts up to 72 characters of
+-- input and ignores excess input data.  Base-64 encoded SHA-384 fits in
+-- this, but simple hex encoded SHA512 exceeds this limit.
 
 -- session/max_age:	(interval)
 --	automatic logout regardless of activity
