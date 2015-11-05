@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS regano.sessions (
 	activity	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX ON regano.sessions (start);
 
 -- Contact information for users and domains
 CREATE TABLE IF NOT EXISTS regano.contacts (

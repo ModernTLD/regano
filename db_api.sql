@@ -136,6 +136,8 @@ DECLARE
 		    := (regano.config_get('auth/crypt')).text;
     crypt_iter	CONSTANT integer NOT NULL
 		    := (regano.config_get('auth/crypt')).number;
+    max_age	CONSTANT interval NOT NULL
+		    := (regano.config_get('session/max_age')).interval;
 
     user_id	bigint;	-- row ID of user record
     stored_pw	text;	-- password hash from database
@@ -147,6 +149,8 @@ BEGIN
 	-- fake a stored password to impede timing attacks
 	stored_pw := gen_salt(crypt_alg, crypt_iter);
     END IF;
+    -- clean up expired sessions
+    DELETE FROM regano.sessions WHERE start < (CURRENT_TIMESTAMP - max_age);
     -- verify password; note that a bare salt cannot match any hash
     IF crypt(password.digest, stored_pw) = stored_pw THEN
 	-- login successful
