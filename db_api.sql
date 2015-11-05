@@ -167,6 +167,41 @@ $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.user_login (text, regano.password)
 	OWNER TO regano;
 
+-- Change a logged-in user's password.
+CREATE OR REPLACE FUNCTION regano_api.user_change_password
+	(uuid, regano.password, regano.password)
+	RETURNS boolean AS $$
+DECLARE
+    session_id	ALIAS FOR $1;
+    old_pw	ALIAS FOR $2;
+    new_pw	ALIAS FOR $3;
+
+    crypt_alg	CONSTANT text NOT NULL
+		    := (regano.config_get('auth/crypt')).text;
+    crypt_iter	CONSTANT integer NOT NULL
+		    := (regano.config_get('auth/crypt')).number;
+
+    user_id	bigint;	-- row ID of user record
+BEGIN
+    SELECT regano.sessions.user_id INTO user_id
+	FROM regano.sessions WHERE id = session_id;
+    IF NOT FOUND THEN
+	RETURN FALSE;
+    END IF;
+
+    new_pw.digest := crypt(new_pw.digest, gen_salt(crypt_alg, crypt_iter));
+
+    UPDATE regano.users SET password = new_pw
+	WHERE ((id = user_id) AND
+	    (crypt(old_pw.digest, (regano.users.password).digest) =
+	     (regano.users.password).digest));
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.user_change_password
+	(uuid, regano.password, regano.password)
+	OWNER TO regano;
+
 -- End a session.
 CREATE OR REPLACE FUNCTION regano_api.session_logout
 	(session uuid)
