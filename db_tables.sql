@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS regano.sessions (
 	user_id		bigint NOT NULL REFERENCES regano.users (id),
 	start		timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	last_seen	timestamp with time zone
+	activity	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

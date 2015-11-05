@@ -189,14 +189,14 @@ BEGIN
     SELECT * INTO session
 	FROM regano.sessions WHERE regano.sessions.id = session_check.id;
     IF FOUND THEN
-	IF ((CURRENT_TIMESTAMP - session.last_seen) > max_idle) OR
+	IF ((CURRENT_TIMESTAMP - session.activity) > max_idle) OR
 	   ((CURRENT_TIMESTAMP - session.start) > max_age) THEN
 	    -- session is expired
 	    PERFORM regano_api.session_logout(session.id);
 	    RETURN NULL;
 	ELSE
 	    -- update activity timestamp
-	    UPDATE regano.sessions SET last_seen = CURRENT_TIMESTAMP
+	    UPDATE regano.sessions SET activity = CURRENT_TIMESTAMP
 		WHERE regano.sessions.id = session_check.id;
 	END IF;
     ELSE
