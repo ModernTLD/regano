@@ -23,6 +23,9 @@ CREATE OR REPLACE FUNCTION regano_api.domain_status
 DECLARE
     name		ALIAS FOR $1;
 
+    max_age		CONSTANT interval NOT NULL
+			    := (regano.config_get('domain/pend_term')).interval;
+
     active_domain	regano.domains%ROWTYPE;
 
     primary_label	regano.dns_label;
@@ -42,6 +45,8 @@ BEGIN
 	RETURN 'RESERVED';
     END IF;
 
+    -- clean up pending domains, then check if the requested domain is pending
+    DELETE FROM regano.pending_domains WHERE start < (now() - max_age);
     PERFORM * FROM regano.pending_domains
 		WHERE lower(domain_name) = lower(name);
     IF FOUND THEN
@@ -61,7 +66,7 @@ BEGIN
 
     RETURN 'AVAILABLE';
 END;
-$$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_status (regano.dns_fqdn)
 	OWNER TO regano;
 
@@ -284,6 +289,7 @@ ALTER FUNCTION regano_api.contact_verify_begin (uuid, bigint)
 CREATE OR REPLACE FUNCTION regano_api.contact_verify_complete
 	(verification_id uuid, key uuid)
 	RETURNS boolean AS $$
+<<var>>
 DECLARE
     domain_term		CONSTANT interval NOT NULL
 			    := (regano.config_get('domain/term')).interval;
@@ -303,7 +309,7 @@ BEGIN
     SELECT * INTO verification
 	FROM regano.contact_verifications
 	WHERE (id = verification_id) AND
-	      (contact_verifications.key = verify_contact_complete.key);
+	      (contact_verifications.key = contact_verify_complete.key);
     IF NOT FOUND THEN
 	RETURN FALSE;
     END IF;
@@ -315,7 +321,7 @@ BEGIN
     -- check for a pending domain
     SELECT * INTO pending_domain
 	FROM regano.pending_domains
-	WHERE contact_id = verification.contact_id;
+	WHERE pending_domains.user_id = var.user_id;
     IF FOUND THEN
 	-- register the pending domain
 	DELETE
@@ -332,4 +338,48 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.contact_verify_complete (uuid, uuid)
+	OWNER TO regano;
+
+
+-- Register an available domain.
+CREATE OR REPLACE FUNCTION regano_api.domain_register
+	(uuid, regano.dns_fqdn)
+	RETURNS regano.domain_status AS $$
+<<var>>
+DECLARE
+    session_id		ALIAS FOR $1;
+    name		ALIAS FOR $2;
+
+    domain_term		CONSTANT interval NOT NULL
+			    := (regano.config_get('domain/term')).interval;
+
+    user_id		CONSTANT bigint NOT NULL
+			    := regano.session_user_id(session_id);
+
+    verified		boolean;	-- verified email address on file?
+BEGIN
+    IF regano_api.domain_status(name) <> 'AVAILABLE' THEN
+	RETURN regano_api.domain_status(name);
+    END IF;
+
+
+    SELECT email_verified INTO STRICT verified
+	FROM regano.users JOIN regano.contacts
+	    ON (contact_id = contacts.id)
+	WHERE regano.users.id = user_id;
+
+    IF verified THEN
+	-- user has a verified email address; register the domain now
+	INSERT INTO regano.domains (domain_name, owner_id, expiration)
+	    VALUES (name, user_id, now() + domain_term);
+	RETURN 'REGISTERED';
+    ELSE
+	-- no verified email address on file; registration will be pending
+	INSERT INTO regano.pending_domains (domain_name, user_id)
+	    VALUES (name, user_id);
+	RETURN 'PENDING';
+    END IF;
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.domain_register (uuid, regano.dns_fqdn)
 	OWNER TO regano;

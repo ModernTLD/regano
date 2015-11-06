@@ -88,3 +88,9 @@ SELECT username
 $$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
 ALTER FUNCTION regano.username (uuid)
 	OWNER TO regano;
+
+CREATE OR REPLACE FUNCTION regano.session_user_id (uuid) RETURNS bigint AS $$
+SELECT user_id FROM regano.sessions WHERE id = $1
+$$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
+ALTER FUNCTION regano.session_user_id (uuid)
+	OWNER TO regano;

@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS regano.contact_verifications (
 	start		timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX ON regano.contact_verifications (start);
 
 -- Domains under which this instance can process registrations
 CREATE TABLE IF NOT EXISTS regano.bailiwicks (
@@ -88,11 +89,14 @@ CREATE TABLE IF NOT EXISTS regano.pending_domains (
 	-- An unverified user can only have one domain pending.
 	-- A verified user immediately registers domains.
 	-- Pre-registered domains do not have an associated contact.
-	contact_id	bigint UNIQUE
-				REFERENCES regano.contacts (id)
+	user_id		bigint UNIQUE
+				REFERENCES regano.users (id),
+	start		timestamp with time zone
+				DEFAULT CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX pending_domains_domain_name_lower_case_unique
 	ON regano.pending_domains (lower(domain_name));
+CREATE INDEX ON regano.pending_domains (start);
 
 -- Domains registered in this instance
 CREATE TABLE IF NOT EXISTS regano.domains (
