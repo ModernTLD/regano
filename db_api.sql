@@ -250,3 +250,84 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.session_check (uuid)
 	OWNER TO regano;
+
+
+-- Begin the process of verifying a contact record.
+CREATE OR REPLACE FUNCTION regano_api.contact_verify_begin
+	(session_id uuid, contact_id bigint)
+	RETURNS void AS $$
+DECLARE
+    contact	regano.contacts%ROWTYPE;
+    session	regano.sessions%ROWTYPE;
+BEGIN
+    SELECT * INTO STRICT session FROM regano.sessions WHERE id = session_id;
+    SELECT * INTO STRICT contact FROM regano.contacts WHERE id = contact_id;
+
+    IF session.user_id <> contact.owner_id THEN
+	RAISE EXCEPTION
+	'attempt made to verify contact (%) not belonging to current user (%)',
+	    contact.id, regano.username(session);
+    END IF;
+
+    INSERT INTO regano.contact_verifications (id, key, contact_id)
+	VALUES (gen_random_uuid(), gen_random_uuid(), contact_id);
+    NOTIFY regano__contact_verifications;
+
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.contact_verify_begin (uuid, bigint)
+	OWNER TO regano;
+
+-- Complete verification of a contact record.
+CREATE OR REPLACE FUNCTION regano_api.contact_verify_complete
+	(verification_id uuid, key uuid)
+	RETURNS boolean AS $$
+DECLARE
+    domain_term		CONSTANT interval NOT NULL
+			    := (regano.config_get('domain/term')).interval;
+    max_age		CONSTANT interval NOT NULL
+			    := (regano.config_get('verify/max_age')).interval;
+
+    pending_domain	regano.pending_domains%ROWTYPE;
+    verification	regano.contact_verifications%ROWTYPE;
+
+    user_id		bigint;	-- row ID of user record
+BEGIN
+    -- clean up expired verifications
+    DELETE
+	FROM regano.contact_verifications
+	WHERE start < (CURRENT_TIMESTAMP - max_age);
+    -- look up the provided verification ID
+    SELECT * INTO verification
+	FROM regano.contact_verifications
+	WHERE (id = verification_id) AND
+	      (contact_verifications.key = verify_contact_complete.key);
+    IF NOT FOUND THEN
+	RETURN FALSE;
+    END IF;
+    -- mark email address as verified
+    UPDATE regano.contacts
+	SET email_verified = TRUE
+	WHERE id = verification.contact_id
+	RETURNING owner_id INTO STRICT user_id;
+    -- check for a pending domain
+    SELECT * INTO pending_domain
+	FROM regano.pending_domains
+	WHERE contact_id = verification.contact_id;
+    IF FOUND THEN
+	-- register the pending domain
+	DELETE
+	    FROM regano.pending_domains
+	    WHERE domain_name = pending_domain.domain_name;
+	INSERT INTO regano.domains (domain_name, owner_id, expiration)
+	    VALUES (pending_domain.domain_name, user_id, now() + domain_term);
+    END IF;
+    -- clean up the successful verification
+    DELETE
+	FROM regano.contact_verifications
+	WHERE id = verification_id;
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.contact_verify_complete (uuid, uuid)
+	OWNER TO regano;

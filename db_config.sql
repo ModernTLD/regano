@@ -22,7 +22,7 @@
 SELECT regano.config_set('auth/crypt', 'bf');
 SELECT regano.config_set('auth/crypt', 10);
 -- Note that the default 'bf' algorithm only accepts up to 72 characters of
--- input and ignores excess input data.  Base-64 encoded SHA-384 fits in
+-- input and ignores excess input data.  Base64 encoded SHA384 fits in
 -- this, but simple hex encoded SHA512 exceeds this limit.
 
 -- session/max_age:	(interval)
@@ -31,3 +31,11 @@ SELECT regano.config_set('session/max_age', interval '6 hours');
 -- session/max_idle:	(interval)
 --	automatic logout due to inactivity
 SELECT regano.config_set('session/max_idle', interval '10 minutes');
+
+-- verify/max_age:	(interval)
+--	amount of time that verfication emails are valid
+SELECT regano.config_set('verify/max_age', interval '24 hours');
+
+-- domain/term:		(interval)
+--	amount of time that domains remain registered if not renewed
+SELECT regano.config_set('domain/term', interval '1 year');

@@ -58,6 +58,16 @@ ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
 	FOREIGN KEY (contact_id) REFERENCES regano.contacts (id)
 				 DEFERRABLE INITIALLY DEFERRED;
 
+-- Email verifications not yet completed
+CREATE TABLE IF NOT EXISTS regano.contact_verifications (
+	id		uuid PRIMARY KEY,
+	key		uuid NOT NULL,
+	contact_id	bigint NOT NULL REFERENCES regano.contacts (id),
+	email_sent	boolean NOT NULL DEFAULT FALSE,
+	start		timestamp with time zone
+				NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Domains under which this instance can process registrations
 CREATE TABLE IF NOT EXISTS regano.bailiwicks (
 	domain_tail	text PRIMARY KEY
@@ -74,7 +84,12 @@ CREATE TABLE IF NOT EXISTS regano.reserved_domains (
 
 -- Domains pending (pre-registered, user not yet verified, etc.)
 CREATE TABLE IF NOT EXISTS regano.pending_domains (
-	domain_name	regano.dns_fqdn PRIMARY KEY
+	domain_name	regano.dns_fqdn PRIMARY KEY,
+	-- An unverified user can only have one domain pending.
+	-- A verified user immediately registers domains.
+	-- Pre-registered domains do not have an associated contact.
+	contact_id	bigint UNIQUE
+				REFERENCES regano.contacts (id)
 );
 CREATE UNIQUE INDEX pending_domains_domain_name_lower_case_unique
 	ON regano.pending_domains (lower(domain_name));
@@ -129,6 +144,7 @@ ALTER TABLE regano.config OWNER TO regano;
 ALTER TABLE regano.users OWNER TO regano;
 ALTER TABLE regano.sessions OWNER TO regano;
 ALTER TABLE regano.contacts OWNER TO regano;
+ALTER TABLE regano.contact_verifications OWNER TO regano;
 ALTER TABLE regano.bailiwicks OWNER TO regano;
 ALTER TABLE regano.reserved_domains OWNER TO regano;
 ALTER TABLE regano.pending_domains OWNER TO regano;
