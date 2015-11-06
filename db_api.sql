@@ -21,33 +21,27 @@ CREATE OR REPLACE FUNCTION regano_api.domain_status
 	(domain_ regano.dns_fqdn)
 	RETURNS regano.domain_status AS $$
 DECLARE
-    bailiwick		regano.bailiwicks%ROWTYPE;
-    reserved_domain	regano.reserved_domains%ROWTYPE;
-    pending_domain	regano.pending_domains%ROWTYPE;
     active_domain	regano.domains%ROWTYPE;
 
     primary_label	regano.dns_label;
+    tail		regano.dns_fqdn;
 BEGIN
-    SELECT * INTO bailiwick
-	FROM regano.bailiwicks
-	WHERE (domain_ LIKE ('%' || domain_tail));
+    primary_label := substring(domain_ from '^([^.]+)[.]');
+    tail:= substring(domain_ from '^[^.]+([.].+[.])$');
+
+    PERFORM * FROM regano.bailiwicks WHERE domain_tail = tail;
     IF NOT FOUND THEN
 	RETURN 'ELSEWHERE';
     END IF;
 
-    primary_label :=
-	substring(domain_
-		  from '([^.]+)' ||
-			replace(bailiwick.domain_tail, '.', '[.]') || '$');
-
-    SELECT * INTO reserved_domain
-	FROM regano.reserved_domains WHERE (lower(primary_label) = domain_name);
+    PERFORM * FROM regano.reserved_domains
+		WHERE domain_name = lower(primary_label);
     IF FOUND THEN
 	RETURN 'RESERVED';
     END IF;
 
-    SELECT * INTO pending_domain
-	FROM regano.pending_domains WHERE (lower(domain_) = lower(domain_name));
+    PERFORM * FROM regano.pending_domains
+		WHERE lower(domain_name) = lower(domain_);
     IF FOUND THEN
 	RETURN 'PENDING';
     END IF;
@@ -67,6 +61,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_status (regano.dns_fqdn)
+	OWNER TO regano;
+
+-- Inquire why a domain is reserved.
+CREATE OR REPLACE FUNCTION regano_api.domain_reservation_reason
+	(regano.dns_fqdn)
+	RETURNS text AS $$
+SELECT reason FROM regano.reserved_domains
+	WHERE domain_name = substring($1 from '^([^.]+)[.]')
+$$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.domain_reservation_reason (regano.dns_fqdn)
 	OWNER TO regano;
 
 
