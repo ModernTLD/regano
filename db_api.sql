@@ -227,7 +227,6 @@ DECLARE
 		    := (regano.config_get('session/max_idle')).interval;
 
     session	regano.sessions%ROWTYPE;
-    username	text;
 BEGIN
     SELECT * INTO session
 	FROM regano.sessions WHERE regano.sessions.id = session_check.id;
@@ -246,9 +245,7 @@ BEGIN
 	-- no such session exists
 	RETURN NULL;
     END IF;
-    SELECT regano.users.username INTO STRICT username
-	FROM regano.users WHERE regano.users.id = session.user_id;
-    RETURN username;
+    RETURN regano.username(session);
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.session_check (uuid)

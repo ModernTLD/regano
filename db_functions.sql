@@ -71,3 +71,20 @@ SELECT * FROM regano.config WHERE key = $1
 $$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
 ALTER FUNCTION regano.config_get (text)
 	OWNER TO regano;
+
+
+CREATE OR REPLACE FUNCTION regano.username (regano.sessions)
+	RETURNS text AS $$
+SELECT username FROM regano.users WHERE id = $1.user_id;
+$$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
+ALTER FUNCTION regano.username (regano.sessions)
+	OWNER TO regano;
+CREATE OR REPLACE FUNCTION regano.username (session_id uuid)
+	RETURNS text AS $$
+SELECT username
+    FROM regano.sessions JOIN regano.users
+	ON (regano.sessions.user_id = regano.users.id)
+    WHERE regano.sessions.id = $1;
+$$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
+ALTER FUNCTION regano.username (uuid)
+	OWNER TO regano;
