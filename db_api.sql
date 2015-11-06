@@ -18,16 +18,18 @@
 
 -- Inquire about the status of a domain.
 CREATE OR REPLACE FUNCTION regano_api.domain_status
-	(domain_ regano.dns_fqdn)
+	(regano.dns_fqdn)
 	RETURNS regano.domain_status AS $$
 DECLARE
+    name		ALIAS FOR $1;
+
     active_domain	regano.domains%ROWTYPE;
 
     primary_label	regano.dns_label;
     tail		regano.dns_fqdn;
 BEGIN
-    primary_label := substring(domain_ from '^([^.]+)[.]');
-    tail:= substring(domain_ from '^[^.]+([.].+[.])$');
+    primary_label := substring(name from '^([^.]+)[.]');
+    tail:= substring(name from '^[^.]+([.].+[.])$');
 
     PERFORM * FROM regano.bailiwicks WHERE domain_tail = tail;
     IF NOT FOUND THEN
@@ -41,13 +43,13 @@ BEGIN
     END IF;
 
     PERFORM * FROM regano.pending_domains
-		WHERE lower(domain_name) = lower(domain_);
+		WHERE lower(domain_name) = lower(name);
     IF FOUND THEN
 	RETURN 'PENDING';
     END IF;
 
     SELECT * INTO active_domain
-	FROM regano.domains WHERE (lower(domain_) = lower(domain_name));
+	FROM regano.domains WHERE (lower(name) = lower(domain_name));
 
     IF FOUND THEN
 	IF now() < active_domain.expiration THEN
@@ -107,10 +109,11 @@ ALTER FUNCTION regano_api.user_register (text, regano.password, text, text)
 	OWNER TO regano;
 
 -- Get the external digest algorithm and salt for a user.
-CREATE OR REPLACE FUNCTION regano_api.user_get_salt_info
-	(username_ text)
+CREATE OR REPLACE FUNCTION regano_api.user_get_salt_info (text)
 	RETURNS regano.password AS $$
 DECLARE
+    username_	ALIAS FOR $1;
+
     password_	regano.password;
 BEGIN
     SELECT (password).xdigest, (password).xsalt INTO password_
@@ -207,9 +210,7 @@ ALTER FUNCTION regano_api.user_change_password
 	OWNER TO regano;
 
 -- End a session.
-CREATE OR REPLACE FUNCTION regano_api.session_logout
-	(session uuid)
-	RETURNS void AS $$
+CREATE OR REPLACE FUNCTION regano_api.session_logout (uuid) RETURNS void AS $$
 DELETE FROM regano.sessions WHERE id = $1
 $$ LANGUAGE SQL VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.session_logout (uuid)
@@ -217,10 +218,11 @@ ALTER FUNCTION regano_api.session_logout (uuid)
 
 -- Retrieve username for a session, update session activity timestamp, and
 -- perform auto-logout if the session has expired.
-CREATE OR REPLACE FUNCTION regano_api.session_check
-	(id uuid)
+CREATE OR REPLACE FUNCTION regano_api.session_check (uuid)
 	RETURNS text AS $$
 DECLARE
+    id		ALIAS FOR $1;
+
     max_age	CONSTANT interval NOT NULL
 		    := (regano.config_get('session/max_age')).interval;
     max_idle	CONSTANT interval NOT NULL
