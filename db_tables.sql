@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS regano.contacts (
 	email		text NOT NULL,
 	email_verified	boolean NOT NULL DEFAULT FALSE
 ) WITH (fillfactor = 90);
+CREATE INDEX ON regano.contacts (owner_id);
 
 ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
 	FOREIGN KEY (contact_id) REFERENCES regano.contacts (id)
