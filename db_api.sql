@@ -283,6 +283,35 @@ $$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.contact_primary_id (uuid)
 	OWNER TO regano;
 
+-- Change the primary contact for the current user.
+CREATE OR REPLACE FUNCTION regano_api.user_set_primary_contact
+	(session_id uuid, contact_id bigint)
+	RETURNS void AS $$
+DECLARE
+    contact	regano.contacts%ROWTYPE;
+    session	regano.sessions%ROWTYPE;
+BEGIN
+    SELECT * INTO STRICT session FROM regano.sessions WHERE id = session_id;
+    SELECT * INTO STRICT contact FROM regano.contacts WHERE id = contact_id;
+
+    IF session.user_id <> contact.owner_id THEN
+	RAISE EXCEPTION
+	'attempt made to select contact (%) not belonging to current user (%)',
+	    contact.id, regano.username(session);
+    END IF;
+
+    IF NOT contact.email_verified THEN
+	RAISE EXCEPTION
+	'Only a verified email address may be set as primary contact.';
+    END IF;
+
+    UPDATE regano.users SET contact_id = contact.id
+	WHERE id = session.user_id;
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.user_set_primary_contact (uuid, bigint)
+	OWNER TO regano;
+
 -- Retrieve all contact records belonging to the current user.
 CREATE OR REPLACE FUNCTION regano_api.contact_list
 	(session_id uuid)
