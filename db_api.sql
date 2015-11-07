@@ -321,6 +321,17 @@ $$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.contact_list (uuid)
 	OWNER TO regano;
 
+-- Add a contact record for the current user.
+CREATE OR REPLACE FUNCTION regano_api.contact_add
+	(session_id uuid, name text, email text)
+	RETURNS bigint AS $$
+INSERT INTO regano.contacts (owner_id, name, email)
+    VALUES (regano.session_user_id($1), $2, $3)
+    RETURNING id;
+$$ LANGUAGE SQL VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.contact_add (uuid, text, text)
+	OWNER TO regano;
+
 -- Update the name field of a contact record.
 CREATE OR REPLACE FUNCTION regano_api.contact_update_name
 	(session_id uuid, contact_id bigint, value text)
