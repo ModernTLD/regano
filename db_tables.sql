@@ -115,8 +115,8 @@ CREATE UNIQUE INDEX domains_domain_name_lower_case_unique
 
 -- DNS records hosted by this instance
 CREATE TABLE IF NOT EXISTS regano.domain_records (
-	id		bigserial PRIMARY KEY,
 	domain_id	bigint NOT NULL REFERENCES regano.domains (id),
+	seq_no		bigint NOT NULL CHECK(seq_no >= 0),
 	class		regano.dns_record_class NOT NULL DEFAULT 'IN',
 	type		regano.dns_record_type NOT NULL,
 	ttl		integer,
@@ -128,7 +128,11 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 	data_RR_A	regano.dns_RR_A,
 	data_RR_AAAA	regano.dns_RR_AAAA,
 	data_RR_DS	regano.dns_RR_DS,
+	-- primary key
+	PRIMARY KEY(domain_id, seq_no),
 	-- constraints to ensure proper usage
+	-- - sequence number 0 is reserved for SOA record
+	CHECK((seq_no = 0) = (type = 'SOA')),
 	-- - types using "data_name"
 	CHECK((type IN ('CNAME', 'DNAME', 'NS', 'PTR'))
 		= (data_name IS NOT NULL)),
@@ -141,7 +145,6 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 	CHECK((type =    'A') = (data_RR_A IS NOT NULL)),
 	CHECK((type = 'AAAA') = (data_RR_AAAA IS NOT NULL)),
 	CHECK((type =   'DS') = (data_RR_DS IS NOT NULL))
-	-- TODO: ensure that a domain can have at most one SOA record
 ) WITH (fillfactor = 90);
 
 
