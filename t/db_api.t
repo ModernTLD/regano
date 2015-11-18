@@ -4,6 +4,7 @@ use Test::More tests => 3;
 
 use DBI;
 use strict;
+use warnings;
 
 use Crypt::Random qw(makerandom_octet);
 use Digest::SHA qw(hmac_sha384_base64);
@@ -33,6 +34,8 @@ sub make_salt ($) {
 my $dbh = DBI->connect('dbi:Pg:db=regano', undef, undef,
 		       {AutoCommit => 1, RaiseError => 1})
   or BAIL_OUT $DBI::errstr;
+
+my ($TRUE, $FALSE) = $dbh->selectrow_array(q{SELECT TRUE, FALSE});
 
 subtest 'Verify configuration' => sub {
   plan tests => scalar keys %CONFIG_KEYS;
@@ -105,15 +108,17 @@ subtest 'Set parameters' => sub {
        q{Verify unique 'example' reserved domain});
 };
 
-subtest 'User accounts' => sub {
-  plan tests => 2 + 3*3;
+subtest 'User accounts (registration, login, passwords)' => sub {
+  plan tests => 2 + 3*3 + 7;
 
-  my ($digest, $salt);
+  my ($digest, $salt, $result, $newsalt);
   my $reg_st = $dbh->prepare(q{SELECT regano_api.user_register(?, ROW(?,?,?), ?, ?)});
   my $chk_st = $dbh->prepare(q{SELECT COUNT(*) FROM regano.users WHERE username = ?});
   my $getsalt_st = $dbh->prepare
     (q{SELECT xdigest, xsalt FROM regano_api.user_get_salt_info(?)});
   my $login_st = $dbh->prepare(q{SELECT regano_api.user_login(?, ROW('','',?))});
+  my $password_change_st = $dbh->prepare
+    (q{SELECT regano_api.user_change_password(?, ROW('','',?), ROW(?,?,?))});
 
   $salt = make_salt 6;
   $reg_st->execute('test1',
@@ -146,6 +151,46 @@ subtest 'User accounts' => sub {
       like($SESSIONS{$username}, $UUID_REGEX, qq{Login for '$username' succeeds});
     }
   }
+
+  $password_change_st->execute('00000000-0000-0000-0000-000000000000',
+			       undef, undef, undef, undef);
+  ($result) = $password_change_st->fetchrow_array;
+  is($result, $FALSE, q{Change password on bogus session});
+
+  ($digest, $salt) = $dbh->selectrow_array($getsalt_st, {}, 'test1');
+  $password_change_st->execute($SESSIONS{test1},
+			      hmac_sha384_base64('bogus', $salt),
+			      'bogus', 'bogus', 'bogus');
+  ($result) = $password_change_st->fetchrow_array;
+  is($result, $FALSE, q{Change password with incorrect old password});
+
+  $newsalt = make_salt 6;
+  BAIL_OUT "cannot happen" if $newsalt eq $salt;
+  $password_change_st->execute($SESSIONS{test1},
+			      hmac_sha384_base64('password', $salt),
+			      'hmac_sha384/base64', $newsalt,
+			      hmac_sha384_base64('hunter2', $newsalt));
+  ($result) = $password_change_st->fetchrow_array;
+  is($result, $TRUE, q{Change password for 'test1'});
+
+  ($digest, $salt) = $dbh->selectrow_array($getsalt_st, {}, 'test1');
+  is($salt, $newsalt, q{Update stored salt});
+
+  my $session = $dbh->selectrow_array
+    ($login_st, {}, 'test1', hmac_sha384_base64('hunter2', $salt));
+  like($session, $UUID_REGEX, q{Login with new password succeeds});
+
+  $newsalt = make_salt 6;
+  BAIL_OUT "cannot happen" if $newsalt eq $salt;
+  $password_change_st->execute($SESSIONS{test1},
+			      hmac_sha384_base64('hunter2', $salt),
+			      'hmac_sha384/base64', $newsalt,
+			      hmac_sha384_base64('password', $newsalt));
+  ($result) = $password_change_st->fetchrow_array;
+  is($result, $TRUE, q{Change password for 'test1' back});
+
+  $dbh->selectrow_array(q{SELECT regano_api.session_logout(?)}, {}, $session);
+  pass(q{Logout extra session});
 };
 
 $dbh->disconnect;
