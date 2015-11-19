@@ -410,6 +410,8 @@ BEGIN
 	    contact.id, regano.username(session);
     END IF;
 
+    DELETE FROM regano.contact_verifications
+	WHERE contact_verifications.contact_id = contact_verify_begin.contact_id;
     INSERT INTO regano.contact_verifications (id, key, contact_id)
 	VALUES (gen_random_uuid(), gen_random_uuid(), contact_id);
     NOTIFY regano__contact_verifications;

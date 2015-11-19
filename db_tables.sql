@@ -63,7 +63,7 @@ ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
 CREATE TABLE IF NOT EXISTS regano.contact_verifications (
 	id		uuid PRIMARY KEY,
 	key		uuid NOT NULL,
-	contact_id	bigint NOT NULL REFERENCES regano.contacts (id),
+	contact_id	bigint UNIQUE NOT NULL REFERENCES regano.contacts (id),
 	email_sent	boolean NOT NULL DEFAULT FALSE,
 	start		timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
