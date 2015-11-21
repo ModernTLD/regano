@@ -349,49 +349,45 @@ subtest 'User accounts (contacts)' => sub {
   pass(qq{Change email address back for contact $contacts{test1p1}})
 };
 
-subtest 'Exploits' => sub {
-  plan tests => 1;
+{
+  #  exploit:	(1) create a contact with valid email address
+  #		(2) request verification of email address
+  #		(3) receive verification email with link
+  #		(4) change contact email address
+  #		(5) use link from (3) to "verify" address from (4)
+  #  prevented by invalidating existing verification links when an
+  #  address is changed
 
-  {
-    #  exploit:	(1) create a contact with valid email address
-    #		(2) request verification of email address
-    #		(3) receive verification email with link
-    #		(4) change contact email address
-    #		(5) use link from (3) to "verify" address from (4)
-    #  prevented by invalidating existing verification links when an
-    #  address is changed
+  my $verify_begin_st = $dbh->prepare
+    (q{SELECT regano_api.contact_verify_begin(?, ?)});
+  my $verify_get_st = $dbh->prepare
+    (q{SELECT id, key FROM regano.contact_verifications WHERE contact_id = ?});
+  my $verify_complete_st = $dbh->prepare
+    (q{SELECT regano_api.contact_verify_complete(?, ?)});
+  my $contact_add_st = $dbh->prepare(q{SELECT regano_api.contact_add(?, ?, ?)});
+  my $contact_update_email_st = $dbh->prepare
+    (q{SELECT regano_api.contact_update_email(?, ?, ?)});
 
-    my $verify_begin_st = $dbh->prepare
-      (q{SELECT regano_api.contact_verify_begin(?, ?)});
-    my $verify_get_st = $dbh->prepare
-      (q{SELECT id, key FROM regano.contact_verifications WHERE contact_id = ?});
-    my $verify_complete_st = $dbh->prepare
-      (q{SELECT regano_api.contact_verify_complete(?, ?)});
-    my $contact_add_st = $dbh->prepare(q{SELECT regano_api.contact_add(?, ?, ?)});
-    my $contact_update_email_st = $dbh->prepare
-      (q{SELECT regano_api.contact_update_email(?, ?, ?)});
+  $dbh->begin_work;
+  # (1)
+  my $contact = $dbh->selectrow_array($contact_add_st, {},
+				      $SESSIONS{test2},
+				      'Bogus Contact', 'test2b@example.com');
+  # (2)
+  $dbh->selectrow_array($verify_begin_st, {}, $SESSIONS{test2}, $contact);
 
-    $dbh->begin_work;
-    # (1)
-    my $contact = $dbh->selectrow_array($contact_add_st, {},
-					$SESSIONS{test2},
-					'Bogus Contact', 'test2b@example.com');
-    # (2)
-    $dbh->selectrow_array($verify_begin_st, {}, $SESSIONS{test2}, $contact);
+  # (3)
+  my ($vid, $vkey) = $dbh->selectrow_array($verify_get_st, {}, $contact);
 
-    # (3)
-    my ($vid, $vkey) = $dbh->selectrow_array($verify_get_st, {}, $contact);
+  # (4)
+  $dbh->selectrow_array($contact_update_email_st, {},
+			$SESSIONS{test2}, $contact, 'bogus@example.com');
 
-    # (4)
-    $dbh->selectrow_array($contact_update_email_st, {},
-			  $SESSIONS{test2}, $contact, 'bogus@example.com');
+  # (5)
+  my ($result) = $dbh->selectrow_array($verify_complete_st, {}, $vid, $vkey);
+  is($result, $FALSE, q{Reject verification after changing address});
 
-    # (5)
-    my ($result) = $dbh->selectrow_array($verify_complete_st, {}, $vid, $vkey);
-    is($result, $FALSE, q{Reject verification after changing address});
-
-    $dbh->rollback;
-  };
+  $dbh->rollback;
 };
 
 $dbh->disconnect;
