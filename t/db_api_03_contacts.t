@@ -1,197 +1,39 @@
-#!perl -w
+#!/usr/bin/perl
 
-use Test::More tests => 5;
+use Test::More tests => 2 + 2 + 3 + 3 + 3 + 2 + 2 + 1 + 1;
 
 use DBI;
 use strict;
 use warnings;
 
-use Crypt::Random qw(makerandom_octet);
-use Digest::SHA qw(hmac_sha384_base64);
-use MIME::Base64 qw(encode_base64);
-
-my %CONFIG_KEYS = ( 'auth/crypt' => ['number', 'text'],
-		    'session/max_age' => ['interval'],
-		    'session/max_idle' => ['interval'],
-		    'verify/max_age' => ['interval'],
-		    'domain/pend_term' => ['interval'],
-		    'domain/term' => ['interval'],
-		  );
-
-my $UUID_REGEX = qr/[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}/i;
-
-my %SESSIONS; # session IDs
-
-sub make_salt ($) {
-  $_[0] += 3 - $_[0] % 3 if $_[0] % 3; # round up to next multiple of 3
-  my $salt = encode_base64(makerandom_octet( Length => $_[0], Strength => 0 ));
-  chomp $salt;
-  return $salt;
-}
-
-##
-
 my $dbh = DBI->connect('dbi:Pg:db=regano', undef, undef,
 		       {AutoCommit => 1, RaiseError => 1})
   or BAIL_OUT $DBI::errstr;
 
+##
+
 my ($TRUE, $FALSE) = $dbh->selectrow_array(q{SELECT TRUE, FALSE});
 
-subtest 'Verify configuration' => sub {
-  plan tests => scalar keys %CONFIG_KEYS;
-  my $sth = $dbh->prepare(q{SELECT interval, number, text FROM regano.config_get(?)});
-  foreach my $key (keys %CONFIG_KEYS) {
-    $sth->execute($key);
-    my ($number, $text, $interval);
-    $sth->bind_columns(\($interval, $number, $text));
-    while ($sth->fetch) {
-      my @values = ();
-      push @values, 'interval' if defined $interval;
-      push @values, 'number' if defined $number;
-      push @values, 'text' if defined $text;
-      is_deeply($CONFIG_KEYS{$key}, \@values, "config key '$key'");
-    }
+my %SESSIONS;
+{
+  my $sth = $dbh->prepare
+    (q{WITH open_sessions AS
+	 (SELECT s.*, u.username,
+		 dense_rank() OVER (PARTITION BY s.user_id
+				    ORDER BY s.activity DESC)
+	      FROM regano.sessions AS s JOIN regano.users AS u
+		  ON s.user_id = u.id)
+	SELECT id, username, regano_api.session_check(id)
+	    FROM open_sessions WHERE dense_rank = 1});
+  $sth->execute;
+  my ($id, $username, $check);
+  $sth->bind_columns(\($id, $username, $check));
+  while ($sth->fetch) {
+    $SESSIONS{$username} = $id if $check;
   }
-};
+}
 
-subtest 'Set parameters' => sub {
-  plan tests => 3 + 2 + 5 + 2;
-
-  {
-    my $sth = $dbh->prepare(q{INSERT INTO regano.bailiwicks (domain_tail) VALUES (?)});
-    $sth->{PrintError} = 0;
-    foreach my $bogus_item ('test', '.test', 'test.') {
-      $dbh->begin_work;
-      eval { $sth->execute($bogus_item) };
-      like($@, qr/violates check constraint/,
-	   qq{Insert bogus '$bogus_item' bailiwick});
-      $dbh->rollback;
-    }
-  }
-
-  $dbh->do(q{INSERT INTO regano.bailiwicks (domain_tail) VALUES ('.test.')})
-    if ($dbh->selectrow_array(q{SELECT COUNT(*) FROM regano.bailiwicks
-				WHERE domain_tail = '.test.'}) == 0);
-  pass(q{Add '.test.' bailiwick});
-  eval {
-    local $dbh->{PrintError};
-    $dbh->do(q{INSERT INTO regano.bailiwicks (domain_tail) VALUES ('.test.')})
-  };
-  like($@, qr/duplicate key value violates unique constraint/,
-       q{Verify unique '.test.' bailiwick});
-
-  {
-    my $sth = $dbh->prepare(q{INSERT INTO regano.reserved_domains (domain_name, reason)
-				VALUES (?, 'bogus')});
-    $sth->{PrintError} = 0;
-    foreach my $bogus_item ('example.test', 'example.test.',
-			    '.example', '.example.', 'EXAMPLE') {
-      $dbh->begin_work;
-      eval { $sth->execute($bogus_item) };
-      like($@, qr/violates check constraint/,
-	   qq{Insert bogus '$bogus_item' reserved domain});
-      $dbh->rollback;
-    }
-  }
-
-  $dbh->do(q{INSERT INTO regano.reserved_domains (domain_name, reason)
-		VALUES ('example', 'Reserved for testing purposes')})
-    if ($dbh->selectrow_array(q{SELECT COUNT(*) FROM regano.reserved_domains
-				WHERE domain_name = 'example'}) == 0);
-  pass(q{Reserve 'example' domain});
-  eval {
-    local $dbh->{PrintError};
-    $dbh->do(q{INSERT INTO regano.reserved_domains (domain_name, reason)
-		VALUES ('example', 'bogus')})
-  };
-  like($@, qr/duplicate key value violates unique constraint/,
-       q{Verify unique 'example' reserved domain});
-};
-
-subtest 'User accounts (registration, login, passwords)' => sub {
-  plan tests => 2 + 3*3 + 7;
-
-  my ($digest, $salt, $result, $newsalt);
-  my $reg_st = $dbh->prepare(q{SELECT regano_api.user_register(?, ROW(?,?,?), ?, ?)});
-  my $chk_st = $dbh->prepare(q{SELECT COUNT(*) FROM regano.users WHERE username = ?});
-  my $getsalt_st = $dbh->prepare
-    (q{SELECT xdigest, xsalt FROM regano_api.user_get_salt_info(?)});
-  my $login_st = $dbh->prepare(q{SELECT regano_api.user_login(?, ROW('','',?))});
-  my $password_change_st = $dbh->prepare
-    (q{SELECT regano_api.user_change_password(?, ROW('','',?), ROW(?,?,?))});
-
-  $salt = make_salt 6;
-  $reg_st->execute('test1',
-		   'hmac_sha384/base64', $salt,
-		   hmac_sha384_base64('password', $salt),
-		   'Test User 1',
-		   'test1@example.com')
-    unless $dbh->selectrow_array($chk_st, {}, 'test1');
-  pass(q{Register user 'test1'});
-
-  $salt = make_salt 6;
-  $reg_st->execute('test2',
-		   'hmac_sha384/base64', $salt,
-		   hmac_sha384_base64('password', $salt),
-		   'Test User 2',
-		   'test2@example.com')
-    unless $dbh->selectrow_array($chk_st, {}, 'test2');
-  pass(q{Register user 'test2'});
-
-  foreach my $username ('bogus', 'test1', 'test2') {
-    ($digest, $salt) = $dbh->selectrow_array($getsalt_st, {}, $username);
-    is($digest, 'hmac_sha384/base64', qq{Verify '$username' digest type});
-    like($salt, qr{[[:alnum:]+/]{8}}, qq{Verify '$username' salt});
-
-    $SESSIONS{$username} = $dbh->selectrow_array
-      ($login_st, {}, $username, hmac_sha384_base64('password', $salt));
-    if ($username eq 'bogus') {
-      is($SESSIONS{$username}, undef, q{Login for 'bogus' fails});
-    } else {
-      like($SESSIONS{$username}, $UUID_REGEX, qq{Login for '$username' succeeds});
-    }
-  }
-
-  $password_change_st->execute('00000000-0000-0000-0000-000000000000',
-			       undef, undef, undef, undef);
-  ($result) = $password_change_st->fetchrow_array;
-  is($result, $FALSE, q{Change password on bogus session});
-
-  ($digest, $salt) = $dbh->selectrow_array($getsalt_st, {}, 'test1');
-  $password_change_st->execute($SESSIONS{test1},
-			      hmac_sha384_base64('bogus', $salt),
-			      'bogus', 'bogus', 'bogus');
-  ($result) = $password_change_st->fetchrow_array;
-  is($result, $FALSE, q{Change password with incorrect old password});
-
-  $newsalt = make_salt 6;
-  BAIL_OUT "cannot happen" if $newsalt eq $salt;
-  $password_change_st->execute($SESSIONS{test1},
-			      hmac_sha384_base64('password', $salt),
-			      'hmac_sha384/base64', $newsalt,
-			      hmac_sha384_base64('hunter2', $newsalt));
-  ($result) = $password_change_st->fetchrow_array;
-  is($result, $TRUE, q{Change password for 'test1'});
-
-  ($digest, $salt) = $dbh->selectrow_array($getsalt_st, {}, 'test1');
-  is($salt, $newsalt, q{Update stored salt});
-
-  my $session = $dbh->selectrow_array
-    ($login_st, {}, 'test1', hmac_sha384_base64('hunter2', $salt));
-  like($session, $UUID_REGEX, q{Login with new password succeeds});
-
-  $newsalt = make_salt 6;
-  BAIL_OUT "cannot happen" if $newsalt eq $salt;
-  $password_change_st->execute($SESSIONS{test1},
-			      hmac_sha384_base64('hunter2', $salt),
-			      'hmac_sha384/base64', $newsalt,
-			      hmac_sha384_base64('password', $newsalt));
-  ($result) = $password_change_st->fetchrow_array;
-  is($result, $TRUE, q{Change password for 'test1' back});
-
-  $dbh->selectrow_array(q{SELECT regano_api.session_logout(?)}, {}, $session);
-  pass(q{Logout extra session});
-};
+##
 
 sub verify_contact ($$) {
   plan tests => 8;
@@ -235,9 +77,7 @@ sub verify_contact ($$) {
   is($result, 0, qq{Completed verification for contact $id removed});
 }
 
-subtest 'User accounts (contacts)' => sub {
-  plan tests => 2 + 2 + 3 + 3 + 3 + 2 + 2 + 1;
-
+{
   my %contacts;
   my $contact_add_st = $dbh->prepare(q{SELECT regano_api.contact_add(?, ?, ?)});
   my $contact_get_st = $dbh->prepare
@@ -309,7 +149,7 @@ subtest 'User accounts (contacts)' => sub {
 			  'bogus@example.com');
   };
   like($@, qr/not belonging to current user/,
-      q{Check ownership of contact before changing email address});
+       q{Check ownership of contact before changing email address});
   eval {
     local $dbh->{PrintError};
     $dbh->selectrow_array($contact_update_email_st, {},
@@ -326,28 +166,28 @@ subtest 'User accounts (contacts)' => sub {
   eval {
     local $dbh->{PrintError};
     $dbh->selectrow_array($contact_update_name_st, {},
-			 $SESSIONS{test1}, $contacts{test2}, 'bogus');
+			  $SESSIONS{test1}, $contacts{test2}, 'bogus');
   };
   like($@, qr/not belonging to current user/,
-      q{Check ownership of contact before changing name});
+       q{Check ownership of contact before changing name});
   $dbh->selectrow_array($contact_update_name_st, {},
 			$SESSIONS{test1}, $contacts{test1}, 'Test User 1A');
   pass(qq{Change name for contact $contacts{test1}});
 
   is_deeply($dbh->selectall_arrayref($contact_list_st, {}, $SESSIONS{test1}),
-	   [['Test User 1A', 'test1@example.com', $TRUE],
-	    ['Test User Public', 'spamtrap1@example.com', $FALSE],
-	    ['Test User Public 2', 'spamtrap2@example.com', $FALSE]],
+	    [['Test User 1A', 'test1@example.com', $TRUE],
+	     ['Test User Public', 'spamtrap1@example.com', $FALSE],
+	     ['Test User Public 2', 'spamtrap2@example.com', $FALSE]],
 	    q{Contact list for 'test1'});
   is_deeply($dbh->selectall_arrayref($contact_list_st, {}, $SESSIONS{test2}),
-	   [['Test User 2', 'test2@example.com', $FALSE]],
+	    [['Test User 2', 'test2@example.com', $FALSE]],
 	    q{Contact list for 'test2'});
 
   $dbh->selectrow_array($contact_update_email_st, {},
 			$SESSIONS{test1}, $contacts{test1p1},
 			'spamtrap@example.com');
-  pass(qq{Change email address back for contact $contacts{test1p1}})
-};
+  pass(qq{Change email address back for contact $contacts{test1p1}});
+}
 
 {
   #  exploit:	(1) create a contact with valid email address
@@ -388,7 +228,9 @@ subtest 'User accounts (contacts)' => sub {
   is($result, $FALSE, q{Reject verification after changing address});
 
   $dbh->rollback;
-};
+}
+
+##
 
 $dbh->disconnect;
 

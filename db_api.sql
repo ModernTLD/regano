@@ -225,6 +225,7 @@ ALTER FUNCTION regano_api.session_logout (uuid)
 -- perform auto-logout if the session has expired.
 CREATE OR REPLACE FUNCTION regano_api.session_check (uuid)
 	RETURNS text AS $$
+<<var>>
 DECLARE
     id		ALIAS FOR $1;
 
@@ -236,7 +237,7 @@ DECLARE
     session	regano.sessions%ROWTYPE;
 BEGIN
     SELECT * INTO session
-	FROM regano.sessions WHERE regano.sessions.id = session_check.id;
+	FROM regano.sessions WHERE regano.sessions.id = var.id;
     IF FOUND THEN
 	IF ((CURRENT_TIMESTAMP - session.activity) > max_idle) OR
 	   ((CURRENT_TIMESTAMP - session.start) > max_age) THEN
@@ -246,7 +247,7 @@ BEGIN
 	ELSE
 	    -- update activity timestamp
 	    UPDATE regano.sessions SET activity = CURRENT_TIMESTAMP
-		WHERE regano.sessions.id = session_check.id;
+		WHERE regano.sessions.id = var.id;
 	END IF;
     ELSE
 	-- no such session exists
