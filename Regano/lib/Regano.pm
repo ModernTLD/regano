@@ -49,7 +49,7 @@ __PACKAGE__->setup();
 
 =head1 NAME
 
-Regano - Catalyst based application
+Regano - A TLD management system for OpenNIC TLDs
 
 =head1 SYNOPSIS
 
@@ -57,7 +57,9 @@ Regano - Catalyst based application
 
 =head1 DESCRIPTION
 
-[enter your description here]
+Regano is a domain registration and general TLD management system for
+OpenNIC TLDs.  While it was initially developed for the .chan TLD, the
+project aims for general applicability.
 
 =head1 SEE ALSO
 
