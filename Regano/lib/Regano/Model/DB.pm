@@ -8,7 +8,7 @@ __PACKAGE__->config(
   dsn           => 'dbi:Pg:db=regano',
   user          => '',
   password      => '',
-  options       => {},
+  options       => { AutoCommit => 1, RaiseError => 1 },
 );
 
 =head1 NAME
@@ -21,7 +21,7 @@ See L<Regano>
 
 =head1 DESCRIPTION
 
-DBI Model Class.
+This is the database glue module for Regano.
 
 =head1 AUTHOR
 
