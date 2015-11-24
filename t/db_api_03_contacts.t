@@ -18,13 +18,13 @@ my %SESSIONS;
 {
   my $sth = $dbh->prepare
     (q{WITH open_sessions AS
-	 (SELECT s.*, u.username,
-		 dense_rank() OVER (PARTITION BY s.user_id
-				    ORDER BY s.activity DESC)
-	      FROM regano.sessions AS s JOIN regano.users AS u
-		  ON s.user_id = u.id)
-	SELECT id, username, regano_api.session_check(id)
-	    FROM open_sessions WHERE dense_rank = 1});
+	 (SELECT s.*, dense_rank() OVER (PARTITION BY s.user_id
+					 ORDER BY s.activity DESC)
+	      FROM regano.sessions AS s)
+	SELECT s.id, u.username, regano_api.session_check(s.id)
+	    FROM open_sessions AS s JOIN regano.users AS u
+		ON s.user_id = u.id
+	    WHERE dense_rank = 1});
   $sth->execute;
   my ($id, $username, $check);
   $sth->bind_columns(\($id, $username, $check));
