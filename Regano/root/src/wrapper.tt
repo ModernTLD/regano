@@ -1,0 +1,58 @@
+[%# <!-- This -*- HTML -*- template is part of Regano.
+	 Regano is free software and may be redistributed and/or modified
+	 under the same terms as Perl itself. --> ~%]
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+	  "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <title>[% template.title or "Regano" %]</title>
+    <link rel="stylesheet" href="/static/style/werc.css" type="text/css"
+	  media="screen handlheld" title="default">
+  </head>
+  <body>
+    <div id="header">
+      <div class="superHeader">
+	<div class="left">
+	  links?
+	</div>
+	<div class="right">
+	  <a href="https://opennicproject.org">OpenNIC</a>
+	</div>
+      </div>
+      <div class="midHeader">
+	<h1 class="headerTitle">
+	  <a href="/">[% regano.instance.name or "Regano" %]</a>
+	  <span id="headerSubTitle">[% regano.instance.description %]</span>
+	</h1>
+      </div>
+      <div class="subHeader">
+	sub header?
+      </div>
+    </div>
+
+    <div id="side-bar">
+      <div>
+	<ul>
+	  <li>TODO</li>
+	</ul>
+      </div>
+    </div>
+
+    <div id="main-copy">
+      [% content %]
+    </div>
+
+    <div id="footer">
+      <div class="left">
+	left footer
+      </div>
+      <div class="right">
+	right footer
+      </div>
+    </div>
+  </body>
+</html>
+
+<!--  LocalWords:  regano
+ -->
