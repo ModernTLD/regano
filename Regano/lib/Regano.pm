@@ -26,8 +26,8 @@ extends 'Catalyst';
 
 our $VERSION = '0.01';
 
-has 'InstanceName' => ( is => 'rw', isa => 'Str' );
-has 'InstanceDescription' => ( is => 'rw', isa => 'Str' );
+has 'InstanceName' => ( is => 'ro', isa => 'Str' );
+has 'InstanceDescription' => ( is => 'ro', isa => 'Str' );
 
 # Configure the application.
 #
