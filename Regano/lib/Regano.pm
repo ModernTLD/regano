@@ -26,6 +26,9 @@ extends 'Catalyst';
 
 our $VERSION = '0.01';
 
+has 'InstanceName' => ( is => 'rw', isa => 'Str' );
+has 'InstanceDescription' => ( is => 'rw', isa => 'Str' );
+
 # Configure the application.
 #
 # Note that settings in regano.conf (or other external
@@ -40,6 +43,8 @@ __PACKAGE__->config(
     # Disable deprecated behavior needed by old applications
     disable_component_resolution_regex_fallback => 1,
     enable_catalyst_header => 1, # Send X-Catalyst header
+    InstanceName => 'Regano',
+    InstanceDescription => 'unconfigured',
 );
 __PACKAGE__->config(
     # Configure the view

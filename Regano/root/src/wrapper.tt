@@ -22,8 +22,8 @@
       </div>
       <div class="midHeader">
 	<h1 class="headerTitle">
-	  <a href="/">[% regano.instance.name or "Regano" %]</a>
-	  <span id="headerSubTitle">[% regano.instance.description %]</span>
+	  <a href="/">[% regano_instance.name or "Regano" %]</a>
+	  <span id="headerSubTitle">[% regano_instance.description %]</span>
 	</h1>
       </div>
       <div class="subHeader">

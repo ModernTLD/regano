@@ -22,6 +22,22 @@ Regano::Controller::Root - Root Controller for Regano
 
 =head1 METHODS
 
+=head2 auto
+
+Add configurable instance data to template stash
+
+=cut
+
+sub auto :Private {
+    my ( $self, $c ) = @_;
+
+    $c->stash(
+	regano_instance => {
+	    name => $c->InstanceName,
+	    description => $c->InstanceDescription,
+	} );
+}
+
 =head2 index
 
 The root page (/)
