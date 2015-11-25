@@ -49,7 +49,7 @@ __PACKAGE__->config(
 	    __PACKAGE__->path_to('root', 'src'),
 	],
 	# Use a standard wrapper
-	WRAPPER => [ 'wrapper' ],
+	WRAPPER => [ 'wrapper.tt' ],
     },
 );
 

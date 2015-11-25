@@ -8,7 +8,7 @@
   <head>
     <title>[% template.title or "Regano" %]</title>
     <link rel="stylesheet" href="/static/style/werc.css" type="text/css"
-	  media="screen handlheld" title="default">
+	  media="screen, handheld" title="default">
   </head>
   <body>
     <div id="header">
