@@ -14,7 +14,11 @@
     <div id="header">
       <div class="superHeader">
 	<div class="left">
-	  links?
+	  [% FOREACH link IN regano.TopBarLink.list %]
+	  [% this_link = link.match('^([^[:space:]]+)[[:space:]]+(.*)$') %]
+	  <a href="[% this_link.0 | url %]">[% this_link.1 | html %]</a>
+	  [% "<span> | </span>" UNLESS loop.last %]
+	  [% END %]
 	</div>
 	<div class="right">
 	  <a href="https://opennicproject.org">OpenNIC</a>
@@ -22,8 +26,8 @@
       </div>
       <div class="midHeader">
 	<h1 class="headerTitle">
-	  <a href="/">[% regano.InstanceName %]</a>
-	  <span id="headerSubTitle">[% regano.InstanceDescription %]</span>
+	  <a href="/">[% regano.InstanceName | html %]</a>
+	  <span id="headerSubTitle">[% regano.InstanceDescription | html %]</span>
 	</h1>
       </div>
       <div class="subHeader">
@@ -54,5 +58,7 @@
   </body>
 </html>
 
-<!--  LocalWords:  regano
+<!--  LocalWords:  regano FOREACH TopBarLink html InstanceName
+ -->
+<!--  LocalWords:  InstanceDescription
  -->

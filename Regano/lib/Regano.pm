@@ -29,6 +29,8 @@ our $VERSION = '0.01';
 has 'InstanceName' => ( is => 'ro', isa => 'Str' );
 has 'InstanceDescription' => ( is => 'ro', isa => 'Str' );
 
+has 'TopBarLink' => ( is => 'ro', isa => 'Str | ArrayRef[Str]' );
+
 # Configure the application.
 #
 # Note that settings in regano.conf (or other external
