@@ -2,5 +2,11 @@
 	 Regano is free software and may be redistributed and/or modified
 	 under the same terms as Perl itself. --> ~%]
 
+[% META
+   title = 'Regano Login'
+ %]
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
 TODO: Account login form
+
+<!--  LocalWords:  Regano login
+ -->
