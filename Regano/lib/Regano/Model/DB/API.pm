@@ -63,14 +63,24 @@ foreach my $method (keys %METHODS) {
   my $arity = scalar @args;
   my $spcall = join('',
 		    'regano_api.', $method, '(?', (',?') x ($arity - 1), ')');
+  my $query;
 
+  if ($retmode eq 'nothing') {
+    $query = "SELECT $spcall"
+  } elsif ($retmode eq 'value') {
+    $query = "SELECT $spcall AS $cols"
+  } elsif ($retmode eq 'row' or $retmode eq 'table') {
+    $query = "SELECT ".join(',', @$cols)." FROM $spcall"
+  } else {
+    die "bad retmode"
+  }
   if ($retmode eq 'nothing') {
     no strict 'refs';
 
     *{$method} = sub {
       my $self = shift;
       my $dbh = $self->dbh;
-      my $sth = $dbh->prepare_cached("SELECT $spcall");
+      my $sth = $dbh->prepare_cached($query);
       $sth->execute(@_);
       1 while $sth->fetch;
     };
@@ -80,7 +90,7 @@ foreach my $method (keys %METHODS) {
     *{$method} = sub {
       my $self = shift;
       my $dbh = $self->dbh;
-      my $sth = $dbh->prepare_cached("SELECT $spcall AS $cols");
+      my $sth = $dbh->prepare_cached($query);
       $sth->execute(@_);
       my ($value) = $sth->fetchrow_array;
       1 while $sth->fetch;
@@ -92,7 +102,7 @@ foreach my $method (keys %METHODS) {
     *{$method} = sub {
       my $self = shift;
       my $dbh = $self->dbh;
-      my $sth = $dbh->prepare_cached("SELECT ".join(',', @$cols)." FROM $spcall");
+      my $sth = $dbh->prepare_cached($query);
       $sth->execute(@_);
       my $row = $sth->fetchrow_hashref('NAME_lc');
       1 while $sth->fetch;
@@ -104,7 +114,7 @@ foreach my $method (keys %METHODS) {
     *{$method} = sub {
       my $self = shift;
       my $dbh = $self->dbh;
-      my $sth = $dbh->prepare_cached("SELECT ".join(',', @$cols)." FROM $spcall");
+      my $sth = $dbh->prepare_cached($query);
       $sth->execute(@_);
       my (@rows, $values);
       push @rows, $values while $values = $sth->fetchrow_hashref('NAME_lc');
