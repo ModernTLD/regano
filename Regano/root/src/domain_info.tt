@@ -1,0 +1,51 @@
+[%# <!-- This -*- HTML -*- template is part of Regano.
+	 Regano is free software and may be redistributed and/or modified
+	 under the same terms as Perl itself. --> ~%]
+
+[% META
+   title = 'Domain Info'
+ %]
+[%# <!-- To be wrapped inside "main-copy" div. --> -%]
+<h1>Domain lookup for [% regano.InstanceName | html %] registry</h1>
+
+<div style="text-align:center">
+  <form action="/domain" method="GET">
+    <input type="text" name="name" maxlength="64" value="">
+    <select name="tail" size="1">
+      [% FOREACH bailiwick IN bailiwicks %]
+      <option>[% bailiwick %]</option>
+      [% END %]
+    </select>
+    <input type="submit" value="Check">
+  </form>
+</div>
+
+[% IF domain %]
+<table style="margin:auto">
+  <tr><th colspan="2">[% domain.name | html %]</th></tr>
+  [% SWITCH domain.status %]
+  [%   CASE 'RESERVED' %]
+  <tr><td colspan="2">Reserved: [% domain.reason %]</td></tr>
+  [%   CASE 'ELSEWHERE' %]
+  <tr><td colspan="2">Not known to this system</td></tr>
+  [%   CASE 'AVAILABLE' %]
+  <tr><td colspan="2">Available for registration</td></tr>
+  [%   CASE 'PENDING' %]
+  <tr><td colspan="2">Registered but not yet active</td></tr>
+  <!-- TODO: maybe show information, like time remaining? -->
+  <tr><td></td><td></td></tr>
+  [%   CASE 'REGISTERED' %]
+  <tr><td colspan="2">Registered and active</td></tr>
+  <!-- TODO: show whois info? -->
+  <tr><td></td><td></td></tr>
+  [%   CASE 'EXPIRED' %]
+  <tr><td colspan="2">Registered but expired</td></tr>
+  <!-- TODO: show whois info? -->
+  <tr><td></td><td></td></tr>
+  [% END %]
+
+</table>
+[% END %]
+
+<!--  LocalWords:  Regano FOREACH
+ -->
