@@ -21,7 +21,15 @@
 	  [% END %]
 	</div>
 	<div class="right">
+	  [% IF session %]
+	  Logged in as [% session.user | html %]
+	  <span> | </span>
+	  <form action="/registrar/logout" method="POST">
+	    <input type="submit" value="Logout">
+	  </form>
+	  [% ELSE %]
 	  <a href="https://opennicproject.org">OpenNIC</a>
+	  [% END %]
 	</div>
       </div>
       <div class="midHeader">
