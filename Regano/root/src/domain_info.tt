@@ -25,7 +25,7 @@
   <tr><th colspan="2">[% domain.name | html %]</th></tr>
   [% SWITCH domain.status %]
   [%   CASE 'RESERVED' %]
-  <tr><td colspan="2">Reserved: [% domain.reason %]</td></tr>
+  <tr><td colspan="2">Reserved: [% domain.reason | html %]</td></tr>
   [%   CASE 'ELSEWHERE' %]
   <tr><td colspan="2">Not known to this system</td></tr>
   [%   CASE 'AVAILABLE' %]
