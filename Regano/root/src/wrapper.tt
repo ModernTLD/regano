@@ -14,7 +14,7 @@
     <div id="header">
       <div class="superHeader">
 	<div class="left">
-	  [% FOREACH link IN regano.TopBarLink.list %]
+	  [% FOREACH link IN regano.config.TopBarLink.list %]
 	  [% this_link = link.match('^([^[:space:]]+)[[:space:]]+(.*)$') %]
 	  <a href="[% this_link.0 | url %]">[% this_link.1 | html %]</a>
 	  [% "<span> | </span>" UNLESS loop.last %]
