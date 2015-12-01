@@ -20,7 +20,13 @@ use Catalyst qw/
     -Debug
     ConfigLoader
     Static::Simple
+
+    Session
+    Session::Store::File
+    Session::State::Cookie
 /;
+
+use Crypt::Random qw/makerandom_octet/;
 
 extends 'Catalyst';
 
@@ -59,6 +65,11 @@ __PACKAGE__->config(
 	WRAPPER => [ 'wrapper.tt' ],
     },
 );
+
+# Override session ID generation
+sub generate_session_id {
+    return unpack("H*", makerandom_octet( Length => 16, Strength => 0 ));
+}
 
 # Start the application
 __PACKAGE__->setup();

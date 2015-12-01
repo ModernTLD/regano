@@ -6,7 +6,7 @@
    title = 'Domain Info'
  %]
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
-<h1>Domain lookup for [% regano.InstanceName | html %] registry</h1>
+<h1>Domain lookup for [% regano.config.InstanceName | html %] registry</h1>
 
 <form action="/domain" method="GET">
   <table style="margin:auto"><tr>
