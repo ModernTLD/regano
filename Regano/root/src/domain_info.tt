@@ -8,17 +8,24 @@
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
 <h1>Domain lookup for [% regano.InstanceName | html %] registry</h1>
 
-<div style="text-align:center">
-  <form action="/domain" method="GET">
-    <input type="text" name="name" maxlength="64" value="">
-    <select name="tail" size="1">
-      [% FOREACH bailiwick IN bailiwicks %]
-      <option>[% bailiwick %]</option>
-      [% END %]
-    </select>
-    <input type="submit" value="Check">
-  </form>
-</div>
+<form action="/domain" method="GET">
+  <table style="margin:auto"><tr>
+      <td>
+	<label for="dname">Domain name</label>
+      </td>
+      <td>
+	<input type="text" name="name" maxlength="64" value="" id="dname">
+	<select name="tail" size="1">
+	  [% FOREACH bailiwick IN bailiwicks %]
+	  <option>[% bailiwick %]</option>
+	  [% END %]
+	</select>
+      </td>
+      <td>
+	<input type="submit" value="Check">
+      </td>
+  </tr></table>
+</form>
 
 [% IF domain %]
 <table style="margin:auto">
