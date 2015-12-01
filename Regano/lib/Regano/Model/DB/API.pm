@@ -58,11 +58,15 @@ my %METHODS = (
     'domain_register' => [ value => 'status', 'dbsession', 'name' ],
 );
 
+sub map_args {
+  join ',',
+    map { ref($_) eq 'ARRAY' ? ('ROW('.map_args(@$_).')') : '?' } @_;
+}
+
 foreach my $method (keys %METHODS) {
   my ($retmode, $cols, @args) = @{$METHODS{$method}};
-  my $arity = scalar @args;
   my $spcall = join('',
-		    'regano_api.', $method, '(?', (',?') x ($arity - 1), ')');
+		    'regano_api.', $method, '(', map_args(@args), ')');
   my $query;
 
   if ($retmode eq 'nothing') {
@@ -74,6 +78,7 @@ foreach my $method (keys %METHODS) {
   } else {
     die "bad retmode"
   }
+
   if ($retmode eq 'nothing') {
     no strict 'refs';
 
