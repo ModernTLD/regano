@@ -34,7 +34,7 @@ BEGIN
     primary_label := substring(name from '^([^.]+)[.]');
     tail:= substring(name from '^[^.]+([.].+[.])$');
 
-    PERFORM * FROM regano.bailiwicks WHERE domain_tail = tail;
+    PERFORM * FROM regano.bailiwicks WHERE lower(domain_tail) = lower(tail);
     IF NOT FOUND THEN
 	RETURN 'ELSEWHERE';
     END IF;
@@ -48,13 +48,16 @@ BEGIN
     -- clean up pending domains, then check if the requested domain is pending
     DELETE FROM regano.pending_domains WHERE start < (now() - max_age);
     PERFORM * FROM regano.pending_domains
-		WHERE lower(domain_name) = lower(name);
+		WHERE lower(domain_name) = lower(primary_label)
+		    AND lower(domain_tail) = lower(tail);
     IF FOUND THEN
 	RETURN 'PENDING';
     END IF;
 
     SELECT * INTO active_domain
-	FROM regano.domains WHERE (lower(name) = lower(domain_name));
+	FROM regano.domains
+	WHERE (lower(primary_label) = lower(domain_name))
+	    AND (lower(tail) = lower(domain_tail));
 
     IF FOUND THEN
 	IF now() < active_domain.expiration THEN
@@ -466,9 +469,12 @@ BEGIN
 	-- register the pending domain
 	DELETE
 	    FROM regano.pending_domains
-	    WHERE domain_name = pending_domain.domain_name;
-	INSERT INTO regano.domains (domain_name, owner_id, expiration)
-	    VALUES (pending_domain.domain_name, user_id, now() + domain_term);
+	    WHERE domain_name = pending_domain.domain_name
+		AND domain_tail = pending_domain.domain_tail;
+	INSERT INTO regano.domains
+	    (domain_name, domain_tail, owner_id, expiration)
+	    VALUES (pending_domain.domain_name, pending_domain.domain_tail,
+		    user_id, now() + domain_term);
     END IF;
     -- clean up the successful verification
     DELETE
@@ -497,11 +503,16 @@ DECLARE
 			    := regano.session_user_id(session_id);
 
     verified		boolean;	-- verified email address on file?
+
+    primary_label	regano.dns_label;
+    tail		regano.dns_fqdn;
 BEGIN
+    primary_label := substring(name from '^([^.]+)[.]');
+    tail:= substring(name from '^[^.]+([.].+[.])$');
+
     IF regano_api.domain_status(name) <> 'AVAILABLE' THEN
 	RETURN regano_api.domain_status(name);
     END IF;
-
 
     SELECT email_verified INTO STRICT verified
 	FROM regano.users JOIN regano.contacts
@@ -510,13 +521,15 @@ BEGIN
 
     IF verified THEN
 	-- user has a verified email address; register the domain now
-	INSERT INTO regano.domains (domain_name, owner_id, expiration)
-	    VALUES (name, user_id, now() + domain_term);
+	INSERT INTO regano.domains
+	    (domain_name, domain_tail, owner_id, expiration)
+	    VALUES (primary_label, tail, user_id, now() + domain_term);
 	RETURN 'REGISTERED';
     ELSE
 	-- no verified email address on file; registration will be pending
-	INSERT INTO regano.pending_domains (domain_name, user_id)
-	    VALUES (name, user_id);
+	INSERT INTO regano.pending_domains
+	    (domain_name, domain_tail, user_id)
+	    VALUES (primary_label, tail, user_id);
 	RETURN 'PENDING';
     END IF;
 END;

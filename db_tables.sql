@@ -86,7 +86,10 @@ CREATE TABLE IF NOT EXISTS regano.reserved_domains (
 
 -- Domains pending (pre-registered, user not yet verified, etc.)
 CREATE TABLE IF NOT EXISTS regano.pending_domains (
-	domain_name	regano.dns_fqdn PRIMARY KEY,
+	domain_name	regano.dns_label NOT NULL,
+	domain_tail	regano.dns_fqdn NOT NULL
+				REFERENCES regano.bailiwicks (domain_tail),
+	PRIMARY KEY(domain_name, domain_tail),
 	-- An unverified user can only have one domain pending.
 	-- A verified user immediately registers domains.
 	-- Pre-registered domains do not have an associated contact.
@@ -102,7 +105,10 @@ CREATE INDEX ON regano.pending_domains (start);
 -- Domains registered in this instance
 CREATE TABLE IF NOT EXISTS regano.domains (
 	id		bigserial PRIMARY KEY,
-	domain_name	regano.dns_fqdn UNIQUE,
+	domain_name	regano.dns_label NOT NULL,
+	domain_tail	regano.dns_fqdn NOT NULL
+				REFERENCES regano.bailiwicks (domain_tail),
+	UNIQUE(domain_name, domain_tail),
 	owner_id	bigint NOT NULL REFERENCES regano.users (id),
 	registered	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP,
