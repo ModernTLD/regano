@@ -56,6 +56,7 @@ $reg_st->execute('test2',
 		 'test2@example.com')
   unless $dbh->selectrow_array($chk_st, {}, 'test2');
 pass(q{Register user 'test2'});
+$reg_st->finish;  # clean up bogus "rows" to keep DBI happy
 
 foreach my $username ('bogus', 'test1', 'test2') {
   ($digest, $salt) = $dbh->selectrow_array($getsalt_st, {}, $username);
@@ -107,7 +108,7 @@ $password_change_st->execute($SESSIONS{test1},
 			     hmac_sha384_base64('password', $newsalt));
 ($result) = $password_change_st->fetchrow_array;
 is($result, $TRUE, q{Change password for 'test1' back});
-1 while $password_change_st->fetch;  # clean up bogus "rows" to keep DBI happy
+$password_change_st->finish;  # clean up bogus "rows" to keep DBI happy
 
 $dbh->selectrow_array(q{SELECT regano_api.session_logout(?)}, {}, $session);
 pass(q{Logout extra session});
