@@ -32,7 +32,7 @@ DECLARE
     tail		regano.dns_fqdn;
 BEGIN
     primary_label := substring(name from '^([^.]+)[.]');
-    tail:= substring(name from '^[^.]+([.].+[.])$');
+    tail := substring(name from '^[^.]+([.].+[.])$');
 
     PERFORM * FROM regano.bailiwicks WHERE lower(domain_tail) = lower(tail);
     IF NOT FOUND THEN
@@ -110,7 +110,9 @@ BEGIN
     INSERT INTO contacts (owner_id, name, email)
 	VALUES (new_user_id, contact_name, contact_email)
 	RETURNING id INTO STRICT new_contact_id;
-    UPDATE users SET contact_id = new_contact_id WHERE id = new_user_id;
+    UPDATE users
+	SET contact_id = new_contact_id
+	WHERE id = new_user_id;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.user_register (text, regano.password, text, text)
@@ -206,7 +208,8 @@ BEGIN
 
     new_pw.digest := crypt(new_pw.digest, gen_salt(crypt_alg, crypt_iter));
 
-    UPDATE regano.users SET password = new_pw
+    UPDATE regano.users
+	SET password = new_pw
 	WHERE ((id = user_id) AND
 	    (crypt(old_pw.digest, (regano.users.password).digest) =
 	     (regano.users.password).digest));
@@ -249,7 +252,8 @@ BEGIN
 	    RETURN NULL;
 	ELSE
 	    -- update activity timestamp
-	    UPDATE regano.sessions SET activity = CURRENT_TIMESTAMP
+	    UPDATE regano.sessions
+		SET activity = CURRENT_TIMESTAMP
 		WHERE regano.sessions.id = var.id;
 	END IF;
     ELSE
@@ -309,7 +313,8 @@ BEGIN
 	'Only a verified email address may be set as primary contact.';
     END IF;
 
-    UPDATE regano.users SET contact_id = contact.id
+    UPDATE regano.users
+	SET contact_id = contact.id
 	WHERE id = session.user_id;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
@@ -354,7 +359,8 @@ BEGIN
 	    contact.id, regano.username(session);
     END IF;
 
-    UPDATE regano.contacts SET name = value
+    UPDATE regano.contacts
+	SET name = value
 	WHERE id = contact_id;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
@@ -393,7 +399,8 @@ BEGIN
     DELETE FROM regano.contact_verifications
 	WHERE contact_verifications.contact_id = contact.id;
     -- change the stored email address
-    UPDATE regano.contacts SET email_verified = FALSE, email = value
+    UPDATE regano.contacts
+	SET email_verified = FALSE, email = value
 	WHERE id = contact_id;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
@@ -508,7 +515,7 @@ DECLARE
     tail		regano.dns_fqdn;
 BEGIN
     primary_label := substring(name from '^([^.]+)[.]');
-    tail:= substring(name from '^[^.]+([.].+[.])$');
+    tail := substring(name from '^[^.]+([.].+[.])$');
 
     IF regano_api.domain_status(name) <> 'AVAILABLE' THEN
 	RETURN regano_api.domain_status(name);
