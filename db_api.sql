@@ -536,3 +536,48 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_register (uuid, regano.dns_fqdn)
 	OWNER TO regano;
+
+-- Renew a domain
+CREATE OR REPLACE FUNCTION regano_api.domain_renew
+	(uuid, regano.dns_fqdn)
+	RETURNS timestamp with time zone AS $$
+DECLARE
+    session_id		ALIAS FOR $1;
+    name		ALIAS FOR $2;
+
+    domain_term		CONSTANT interval NOT NULL
+			    := (regano.config_get('domain/term')).interval;
+
+    user_id		CONSTANT bigint NOT NULL
+			    := regano.session_user_id(session_id);
+
+    primary_label	regano.dns_label;
+    tail		regano.dns_fqdn;
+
+    domain		regano.domains%ROWTYPE;
+    result		timestamp with time zone;
+BEGIN
+    primary_label := substring(name from '^([^.]+)[.]');
+    tail := substring(name from '^[^.]+([.].+[.])$');
+
+    SELECT * INTO STRICT domain
+	FROM regano.domains
+	WHERE (lower(primary_label) = lower(domain_name))
+	    AND (lower(tail) = lower(domain_tail))
+	FOR UPDATE;
+
+    IF user_id <> domain.owner_id THEN
+	RAISE EXCEPTION
+	'attempt made to renew domain (%) not belonging to current user (%)',
+	    name, regano.username(session_id);
+    END IF;
+
+    UPDATE regano.domains
+	SET expiration = now() + domain_term
+	WHERE id = domain.id
+	RETURNING expiration INTO STRICT result;
+    RETURN result;
+END
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.domain_renew (uuid, regano.dns_fqdn)
+	OWNER TO regano;
