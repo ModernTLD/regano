@@ -33,6 +33,8 @@ my %SESSIONS;
   }
 }
 
+BAIL_OUT('No sessions in DB') unless scalar keys %SESSIONS;
+
 ##
 
 sub verify_contact ($$) {
