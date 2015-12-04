@@ -98,8 +98,8 @@ CREATE TABLE IF NOT EXISTS regano.pending_domains (
 	start		timestamp with time zone
 				DEFAULT CURRENT_TIMESTAMP
 );
-CREATE UNIQUE INDEX pending_domains_domain_name_lower_case_unique
-	ON regano.pending_domains (lower(domain_name));
+CREATE UNIQUE INDEX pending_domains_domain_name_domain_tail_lower_case_key
+	ON regano.pending_domains (lower(domain_name), lower(domain_tail));
 CREATE INDEX ON regano.pending_domains (start);
 
 -- Domains registered in this instance
@@ -116,8 +116,8 @@ CREATE TABLE IF NOT EXISTS regano.domains (
 	last_update	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE UNIQUE INDEX domains_domain_name_lower_case_unique
-	ON regano.domains (lower(domain_name));
+CREATE UNIQUE INDEX domains_domain_name_domain_tail_lower_case_key
+	ON regano.domains (lower(domain_name), lower(domain_tail));
 
 -- DNS records hosted by this instance
 CREATE TABLE IF NOT EXISTS regano.domain_records (
