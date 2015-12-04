@@ -121,7 +121,8 @@ CREATE UNIQUE INDEX domains_domain_name_domain_tail_lower_case_key
 
 -- DNS records hosted by this instance
 CREATE TABLE IF NOT EXISTS regano.domain_records (
-	domain_id	bigint NOT NULL REFERENCES regano.domains (id),
+	domain_id	bigint NOT NULL REFERENCES regano.domains (id)
+				ON DELETE CASCADE,
 	seq_no		bigint NOT NULL CHECK(seq_no >= 0),
 	class		regano.dns_record_class NOT NULL DEFAULT 'IN',
 	type		regano.dns_record_type NOT NULL,

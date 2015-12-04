@@ -23,7 +23,9 @@ CREATE OR REPLACE FUNCTION regano_api.domain_status
 DECLARE
     name		ALIAS FOR $1;
 
-    max_age		CONSTANT interval NOT NULL
+    max_expired_age	CONSTANT interval NOT NULL
+			    := (regano.config_get('domain/grace_period')).interval;
+    max_pending_age	CONSTANT interval NOT NULL
 			    := (regano.config_get('domain/pend_term')).interval;
 
     active_domain	regano.domains%ROWTYPE;
@@ -46,7 +48,7 @@ BEGIN
     END IF;
 
     -- clean up pending domains, then check if the requested domain is pending
-    DELETE FROM regano.pending_domains WHERE start < (now() - max_age);
+    DELETE FROM regano.pending_domains WHERE start < (now() - max_pending_age);
     PERFORM * FROM regano.pending_domains
 		WHERE lower(domain_name) = lower(primary_label)
 		    AND lower(domain_tail) = lower(tail);
@@ -54,6 +56,8 @@ BEGIN
 	RETURN 'PENDING';
     END IF;
 
+    -- clean up expired domains, then check if the requested domain is active
+    DELETE FROM regano.domains WHERE expiration < (now() - max_expired_age);
     SELECT * INTO active_domain
 	FROM regano.domains
 	WHERE (lower(primary_label) = lower(domain_name))

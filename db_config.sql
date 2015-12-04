@@ -36,6 +36,9 @@ SELECT regano.config_set('session/max_idle', interval '10 minutes');
 --	amount of time that verfication emails are valid
 SELECT regano.config_set('verify/max_age', interval '24 hours');
 
+-- domain/grace_period	(interval)
+--	amount of time that a domain may remain expired before it is deleted
+SELECT regano.config_set('domain/grace_period', interval '30 days');
 -- domain/pend_term	(interval)
 --	amount of time that a domain may remain pending before it is deleted
 SELECT regano.config_set('domain/pend_term', interval '36 hours');
