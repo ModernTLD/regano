@@ -81,7 +81,9 @@ ALTER FUNCTION regano_api.domain_status (regano.dns_fqdn)
 CREATE OR REPLACE FUNCTION regano_api.domain_reservation_reason
 	(regano.dns_fqdn)
 	RETURNS text AS $$
-SELECT reason FROM regano.reserved_domains
+SELECT CASE WHEN regano_api.domain_status($1) <> 'RESERVED' THEN NULL
+	    ELSE reason END
+	FROM regano.reserved_domains
 	WHERE domain_name = substring($1 from '^([^.]+)[.]')
 $$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_reservation_reason (regano.dns_fqdn)
