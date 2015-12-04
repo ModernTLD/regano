@@ -594,3 +594,42 @@ END
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_renew (uuid, regano.dns_fqdn)
 	OWNER TO regano;
+
+-- Immediately expire a domain
+CREATE OR REPLACE FUNCTION regano_api.domain_release
+	(uuid, regano.dns_fqdn)
+	RETURNS void AS $$
+DECLARE
+    session_id		ALIAS FOR $1;
+    name		ALIAS FOR $2;
+
+    user_id		CONSTANT bigint NOT NULL
+			    := regano.session_user_id(session_id);
+
+    primary_label	regano.dns_label;
+    tail		regano.dns_fqdn;
+
+    domain		regano.domains%ROWTYPE;
+BEGIN
+    primary_label := substring(name from '^([^.]+)[.]');
+    tail := substring(name from '^[^.]+([.].+[.])$');
+
+    SELECT * INTO STRICT domain
+	FROM regano.domains
+	WHERE (lower(primary_label) = lower(domain_name))
+	    AND (lower(tail) = lower(domain_tail))
+	FOR UPDATE;
+
+    IF user_id <> domain.owner_id THEN
+	RAISE EXCEPTION
+	'attempt made to release domain (%) not belonging to current user (%)',
+	    name, regano.username(session_id);
+    END IF;
+
+    UPDATE regano.domains
+	SET expiration = now()
+	WHERE id = domain.id;
+END
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.domain_release (uuid, regano.dns_fqdn)
+	OWNER TO regano;
