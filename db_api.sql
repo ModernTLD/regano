@@ -633,3 +633,44 @@ END
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_release (uuid, regano.dns_fqdn)
 	OWNER TO regano;
+
+-- Set default TTL for records in a domain
+CREATE OR REPLACE FUNCTION regano_api.domain_set_default_ttl
+	(uuid, regano.dns_fqdn, regano.dns_interval)
+	RETURNS void AS $$
+DECLARE
+    session_id		ALIAS FOR $1;
+    name		ALIAS FOR $2;
+    new_ttl		ALIAS FOR $3;
+
+    user_id		CONSTANT bigint NOT NULL
+			    := regano.session_user_id(session_id);
+
+    primary_label	regano.dns_label;
+    tail		regano.dns_fqdn;
+
+    domain		regano.domains%ROWTYPE;
+BEGIN
+    primary_label := substring(name from '^([^.]+)[.]');
+    tail := substring(name from '^[^.]+([.].+[.])$');
+
+    SELECT * INTO STRICT domain
+	FROM regano.domains
+	WHERE (lower(primary_label) = lower(domain_name))
+	    AND (lower(tail) = lower(domain_tail))
+	FOR UPDATE;
+
+    IF user_id <> domain.owner_id THEN
+	RAISE EXCEPTION
+	'attempt made to set TTL for domain (%) not belonging to current user (%)',
+	    name, regano.username(session_id);
+    END IF;
+
+    UPDATE regano.domains
+	SET default_ttl = new_ttl
+	WHERE id = domain.id;
+END
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.domain_set_default_ttl
+	(uuid, regano.dns_fqdn, regano.dns_interval)
+	OWNER TO regano;
