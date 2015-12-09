@@ -137,6 +137,8 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 	data_RR_A	regano.dns_RR_A,
 	data_RR_AAAA	regano.dns_RR_AAAA,
 	data_RR_DS	regano.dns_RR_DS,
+	data_RR_MX	regano.dns_RR_MX,
+	data_RR_SRV	regano.dns_RR_SRV,
 	-- primary key
 	PRIMARY KEY(domain_id, seq_no),
 	-- constraints to ensure proper usage
@@ -153,7 +155,9 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 	CHECK((type =  'SOA') = (data_RR_SOA IS NOT NULL)),
 	CHECK((type =    'A') = (data_RR_A IS NOT NULL)),
 	CHECK((type = 'AAAA') = (data_RR_AAAA IS NOT NULL)),
-	CHECK((type =   'DS') = (data_RR_DS IS NOT NULL))
+	CHECK((type =   'DS') = (data_RR_DS IS NOT NULL)),
+	CHECK((type =   'MX') = (data_RR_MX IS NOT NULL)),
+	CHECK((type =  'SRV') = (data_RR_SRV IS NOT NULL))
 ) WITH (fillfactor = 90);
 
 
