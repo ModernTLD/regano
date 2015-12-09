@@ -114,8 +114,10 @@ CREATE TYPE regano.dns_RR_SOA AS (
 	zone		regano.dns_name,
 	-- RNAME:	email address for zone admin
 	mbox		regano.dns_email,
-	-- SERIAL:	zone data revision
-	serial		regano.uint32bit,
+--	NOTE: The database does not store zone serial numbers.  The export
+--	process assigns a serial number based on the domain's timestamp.
+--	-- SERIAL:	zone data revision
+--	serial		regano.uint32bit,
 	-- REFRESH:	refresh interval
 	refresh		regano.dns_interval,
 	-- RETRY:	retry interval if refresh fails
