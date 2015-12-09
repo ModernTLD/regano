@@ -110,6 +110,8 @@ CREATE TABLE IF NOT EXISTS regano.domains (
 				REFERENCES regano.bailiwicks (domain_tail),
 	UNIQUE(domain_name, domain_tail),
 	owner_id	bigint NOT NULL REFERENCES regano.users (id),
+	default_ttl	regano.dns_interval NOT NULL
+				DEFAULT interval '1 day',
 	registered	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	expiration	timestamp with time zone NOT NULL,
