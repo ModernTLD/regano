@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 	seq_no		bigint NOT NULL CHECK(seq_no >= 0),
 	class		regano.dns_record_class NOT NULL DEFAULT 'IN',
 	type		regano.dns_record_type NOT NULL,
-	ttl		integer,
+	ttl		regano.dns_interval,
 	name		regano.dns_name NOT NULL,
 	-- typed storage for DNS records
 	data_name	regano.dns_name,

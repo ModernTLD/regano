@@ -94,3 +94,43 @@ SELECT user_id FROM regano.sessions WHERE id = $1
 $$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
 ALTER FUNCTION regano.session_user_id (uuid)
 	OWNER TO regano;
+
+CREATE OR REPLACE FUNCTION regano.zone_verify_access
+	(session_id uuid, zone_name regano.dns_fqdn, action text)
+	RETURNS regano.domains AS $$
+DECLARE
+    user_id		CONSTANT bigint NOT NULL
+			    := regano.session_user_id(session_id);
+
+    primary_label	regano.dns_label;
+    tail		regano.dns_fqdn;
+
+    domain		regano.domains%ROWTYPE;
+BEGIN
+    primary_label := substring(zone_name from '^([^.]+)[.]');
+    tail := substring(zone_name from '^[^.]+([.].+[.])$');
+
+    SELECT * INTO STRICT domain
+	FROM regano.domains
+	WHERE (lower(primary_label) = lower(domain_name))
+	    AND (lower(tail) = lower(domain_tail));
+
+    IF user_id <> domain.owner_id THEN
+	RAISE EXCEPTION
+	'attempt made to modify zone (%) not belonging to current user (%): %',
+	    zone_name, regano.username(session_id), action;
+    END IF;
+
+    RETURN domain;
+END
+$$ LANGUAGE plpgsql STABLE STRICT SECURITY INVOKER;
+ALTER FUNCTION regano.zone_verify_access (uuid, regano.dns_fqdn, text)
+	OWNER TO regano;
+
+CREATE OR REPLACE FUNCTION regano.zone_next_seq_no (bigint)
+	RETURNS bigint AS $$
+SELECT COALESCE(MAX(seq_no), 0) + 1
+    FROM regano.domain_records WHERE domain_id = $1;
+$$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
+ALTER FUNCTION regano.zone_next_seq_no (bigint)
+	OWNER TO regano;

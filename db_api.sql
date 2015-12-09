@@ -674,3 +674,246 @@ $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_set_default_ttl
 	(uuid, regano.dns_fqdn, regano.dns_interval)
 	OWNER TO regano;
+
+-- Updating domain records is done in multiple steps, all in a single
+-- database transaction.  First, the existing records for the domain are
+-- removed.  Second, new records are inserted in order.  Third, the
+-- database transaction is committed.
+
+-- Remove existing records for a domain
+CREATE OR REPLACE FUNCTION regano_api.zone_clear
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'clear zone');
+
+    DELETE
+	FROM regano.domain_records
+	WHERE domain_id = domain.id;
+END
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_clear (uuid, regano.dns_fqdn)
+	OWNER TO regano;
+
+-- Add an SOA record for a domain
+-- NOTE: A domain may only have one SOA record, at the domain root, with
+-- sequence number zero.
+CREATE OR REPLACE FUNCTION regano_api.zone_add_SOA
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn,
+	 rec_ttl	regano.dns_interval,
+	 SOA_mbox	regano.dns_email,
+	 SOA_refresh	regano.dns_interval,
+	 SOA_retry	regano.dns_interval,
+	 SOA_expire	regano.dns_interval,
+	 SOA_minimum	regano.dns_interval)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'add SOA');
+
+    INSERT INTO regano.domain_records
+	(domain_id, seq_no, type, name, ttl, data_RR_SOA)
+	VALUES (domain.id, 0, 'SOA', '@', rec_ttl,
+		ROW(zone_name, SOA_mbox, SOA_refresh, SOA_retry,
+		    SOA_expire, SOA_minimum));
+END
+$$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_add_SOA
+	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_email,
+	 regano.dns_interval, regano.dns_interval, regano.dns_interval,
+	 regano.dns_interval)
+	OWNER TO regano;
+
+-- Add a record that stores another DNS name
+CREATE OR REPLACE FUNCTION regano_api.zone_add_name
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn,
+	 rec_ttl	regano.dns_interval,
+	 rec_name	regano.dns_name,
+	 rec_type	regano.dns_record_type,
+	 rec_data	regano.dns_name)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+    new_seq_no		bigint;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'add name');
+    new_seq_no := regano.zone_next_seq_no(domain.id);
+
+    INSERT INTO regano.domain_records
+	(domain_id, seq_no, type, name, ttl, data_name)
+	VALUES (domain.id, new_seq_no, rec_type, rec_name, rec_ttl, rec_data);
+END
+$$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_add_name
+	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_name,
+	 regano.dns_record_type, regano.dns_name)
+	OWNER TO regano;
+
+-- Add a record that stores free-form text
+CREATE OR REPLACE FUNCTION regano_api.zone_add_text
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn,
+	 rec_ttl	regano.dns_interval,
+	 rec_name	regano.dns_name,
+	 rec_type	regano.dns_record_type,
+	 rec_data	regano.dns_name)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+    new_seq_no		bigint;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'add text');
+    new_seq_no := regano.zone_next_seq_no(domain.id);
+
+    INSERT INTO regano.domain_records
+	(domain_id, seq_no, type, name, ttl, data_text)
+	VALUES (domain.id, new_seq_no, rec_type, rec_name, rec_ttl, rec_data);
+END
+$$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_add_name
+	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_name,
+	 regano.dns_record_type, regano.dns_name)
+	OWNER TO regano;
+
+-- Add an A record
+CREATE OR REPLACE FUNCTION regano_api.zone_add_A
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn,
+	 rec_ttl	regano.dns_interval,
+	 rec_name	regano.dns_name,
+	 rec_data	regano.dns_RR_A)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+    new_seq_no		bigint;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'add A');
+    new_seq_no := regano.zone_next_seq_no(domain.id);
+
+    INSERT INTO regano.domain_records
+	(domain_id, seq_no, type, name, ttl, data_RR_A)
+	VALUES (domain.id, new_seq_no, 'A', rec_name, rec_ttl, rec_data);
+END
+$$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_add_A
+	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_name,
+	 regano.dns_RR_A)
+	OWNER TO regano;
+
+-- Add an AAAA record
+CREATE OR REPLACE FUNCTION regano_api.zone_add_AAAA
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn,
+	 rec_ttl	regano.dns_interval,
+	 rec_name	regano.dns_name,
+	 rec_data	regano.dns_RR_AAAA)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+    new_seq_no		bigint;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'add AAAA');
+    new_seq_no := regano.zone_next_seq_no(domain.id);
+
+    INSERT INTO regano.domain_records
+	(domain_id, seq_no, type, name, ttl, data_RR_AAAA)
+	VALUES (domain.id, new_seq_no, 'A', rec_name, rec_ttl, rec_data);
+END
+$$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_add_AAAA
+	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_name,
+	 regano.dns_RR_AAAA)
+	OWNER TO regano;
+
+-- Add a DS record
+CREATE OR REPLACE FUNCTION regano_api.zone_add_DS
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn,
+	 rec_ttl	regano.dns_interval,
+	 rec_name	regano.dns_name,
+	 DS_key_tag	regano.uint16bit,
+	 DS_algorithm	regano.uint8bit,
+	 DS_digest_type	regano.uint8bit,
+	 DS_digest	regano.hexstring)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+    new_seq_no		bigint;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'add text');
+    new_seq_no := regano.zone_next_seq_no(domain.id);
+
+    INSERT INTO regano.domain_records
+	(domain_id, seq_no, type, name, ttl, data_RR_DS)
+	VALUES (domain.id, new_seq_no, 'A', rec_name, rec_ttl,
+		ROW(DS_key_tag, DS_algorithm, DS_digest_type, DS_digest));
+END
+$$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_add_DS
+	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_name,
+	 regano.uint16bit, regano.uint8bit, regano.uint8bit,
+	 regano.hexstring)
+	OWNER TO regano;
+
+-- Add an MX record
+CREATE OR REPLACE FUNCTION regano_api.zone_add_MX
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn,
+	 rec_ttl	regano.dns_interval,
+	 rec_name	regano.dns_name,
+	 MX_preference	regano.uint16bit,
+	 MX_exchange	regano.dns_name)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+    new_seq_no		bigint;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'add text');
+    new_seq_no := regano.zone_next_seq_no(domain.id);
+
+    INSERT INTO regano.domain_records
+	(domain_id, seq_no, type, name, ttl, data_RR_MX)
+	VALUES (domain.id, new_seq_no, 'MX', rec_name, rec_ttl,
+		ROW(MX_preference, MX_exchange));
+END
+$$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_add_MX
+	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_name,
+	 regano.uint16bit, regano.dns_name)
+	OWNER TO regano;
+
+-- Add a SRV record
+CREATE OR REPLACE FUNCTION regano_api.zone_add_SRV
+	(session_id	uuid,
+	 zone_name	regano.dns_fqdn,
+	 rec_ttl	regano.dns_interval,
+	 rec_name	regano.dns_name,
+	 SRV_priority	regano.uint16bit,
+	 SRV_weight	regano.uint16bit,
+	 SRV_port	regano.uint16bit,
+	 SRV_target	regano.dns_fqdn)
+	RETURNS void AS $$
+DECLARE
+    domain		regano.domains%ROWTYPE;
+    new_seq_no		bigint;
+BEGIN
+    domain := regano.zone_verify_access(session_id, zone_name, 'add text');
+    new_seq_no := regano.zone_next_seq_no(domain.id);
+
+    INSERT INTO regano.domain_records
+	(domain_id, seq_no, type, name, ttl, data_RR_SRV)
+	VALUES (domain.id, new_seq_no, 'SRV', rec_name, rec_ttl,
+		ROW(SRV_priority, SRV_weight, SRV_port, SRV_target));
+END
+$$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
+ALTER FUNCTION regano_api.zone_add_SRV
+	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_name,
+	 regano.uint16bit, regano.uint16bit, regano.uint16bit,
+	 regano.dns_fqdn)
+	OWNER TO regano;
