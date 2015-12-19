@@ -134,3 +134,19 @@ SELECT COALESCE(MAX(seq_no), 0) + 1
 $$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
 ALTER FUNCTION regano.zone_next_seq_no (bigint)
 	OWNER TO regano;
+
+CREATE OR REPLACE FUNCTION regano.canonicalize_record_name
+	(input regano.dns_name, zone_name regano.dns_fqdn)
+	RETURNS regano.dns_name AS $$
+SELECT CASE WHEN lower($1) = lower($2) THEN regano.dns_name '@'
+	    WHEN char_length($1) > (1+char_length($2))
+		 AND (lower($1) LIKE lower('%.' || $2))
+		 THEN CAST(substring($1 from 1
+				     for (char_length($1) - char_length($2) - 1))
+			   AS regano.dns_name)
+	    ELSE $1
+       END
+$$ LANGUAGE SQL IMMUTABLE STRICT SECURITY INVOKER;
+ALTER FUNCTION regano.canonicalize_record_name
+	(regano.dns_name, regano.dns_fqdn)
+	OWNER TO regano;

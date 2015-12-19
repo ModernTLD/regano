@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS regano.domain_records (
 	class		regano.dns_record_class NOT NULL DEFAULT 'IN',
 	type		regano.dns_record_type NOT NULL,
 	ttl		regano.dns_interval,
-	name		regano.dns_name NOT NULL,
+	name		regano.dns_name NOT NULL CHECK(name NOT LIKE '%.'),
 	-- typed storage for DNS records
 	data_name	regano.dns_name,
 	data_text	text,

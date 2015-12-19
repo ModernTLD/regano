@@ -734,13 +734,16 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_name
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name	regano.dns_name,
+	 rec_name_in	regano.dns_name,
 	 rec_type	regano.dns_record_type,
 	 rec_data	regano.dns_name)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
+    rec_name		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name_in,
+							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add name');
     new_seq_no := regano.zone_next_seq_no(domain.id);
@@ -760,13 +763,16 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_text
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name	regano.dns_name,
+	 rec_name_in	regano.dns_name,
 	 rec_type	regano.dns_record_type,
 	 rec_data	text)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
+    rec_name		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name_in,
+							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add text');
     new_seq_no := regano.zone_next_seq_no(domain.id);
@@ -786,12 +792,15 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_A
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name	regano.dns_name,
+	 rec_name_in	regano.dns_name,
 	 rec_data	regano.dns_RR_A)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
+    rec_name		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name_in,
+							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add A');
     new_seq_no := regano.zone_next_seq_no(domain.id);
@@ -811,12 +820,15 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_AAAA
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name	regano.dns_name,
+	 rec_name_in	regano.dns_name,
 	 rec_data	regano.dns_RR_AAAA)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
+    rec_name		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name_in,
+							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add AAAA');
     new_seq_no := regano.zone_next_seq_no(domain.id);
@@ -836,7 +848,7 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_DS
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name	regano.dns_name,
+	 rec_name_in	regano.dns_name,
 	 DS_key_tag	regano.uint16bit,
 	 DS_algorithm	regano.uint8bit,
 	 DS_digest_type	regano.uint8bit,
@@ -845,6 +857,9 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_DS
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
+    rec_name		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name_in,
+							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add DS');
     new_seq_no := regano.zone_next_seq_no(domain.id);
@@ -866,13 +881,16 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_MX
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name	regano.dns_name,
+	 rec_name_in	regano.dns_name,
 	 MX_preference	regano.uint16bit,
 	 MX_exchange	regano.dns_name)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
+    rec_name		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name_in,
+							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add MX');
     new_seq_no := regano.zone_next_seq_no(domain.id);
@@ -893,7 +911,7 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_SRV
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name	regano.dns_name,
+	 rec_name_in	regano.dns_name,
 	 SRV_priority	regano.uint16bit,
 	 SRV_weight	regano.uint16bit,
 	 SRV_port	regano.uint16bit,
@@ -902,6 +920,9 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_SRV
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
+    rec_name		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name_in,
+							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add SRV');
     new_seq_no := regano.zone_next_seq_no(domain.id);
