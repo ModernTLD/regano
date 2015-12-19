@@ -734,15 +734,15 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_name
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name_in	regano.dns_name,
+	 rec_name	regano.dns_name,
 	 rec_type	regano.dns_record_type,
 	 rec_data	regano.dns_name)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
-    rec_name		CONSTANT regano.dns_name NOT NULL
-			    := regano.canonicalize_record_name(rec_name_in,
+    rec_name_c		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name,
 							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add name');
@@ -750,7 +750,7 @@ BEGIN
 
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_name)
-	VALUES (domain.id, new_seq_no, rec_type, rec_name, rec_ttl, rec_data);
+	VALUES (domain.id, new_seq_no, rec_type, rec_name_c, rec_ttl, rec_data);
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_name
@@ -763,15 +763,15 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_text
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name_in	regano.dns_name,
+	 rec_name	regano.dns_name,
 	 rec_type	regano.dns_record_type,
 	 rec_data	text)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
-    rec_name		CONSTANT regano.dns_name NOT NULL
-			    := regano.canonicalize_record_name(rec_name_in,
+    rec_name_c		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name,
 							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add text');
@@ -779,7 +779,7 @@ BEGIN
 
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_text)
-	VALUES (domain.id, new_seq_no, rec_type, rec_name, rec_ttl, rec_data);
+	VALUES (domain.id, new_seq_no, rec_type, rec_name_c, rec_ttl, rec_data);
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_text
@@ -792,14 +792,14 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_A
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name_in	regano.dns_name,
+	 rec_name	regano.dns_name,
 	 rec_data	regano.dns_RR_A)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
-    rec_name		CONSTANT regano.dns_name NOT NULL
-			    := regano.canonicalize_record_name(rec_name_in,
+    rec_name_c		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name,
 							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add A');
@@ -807,7 +807,7 @@ BEGIN
 
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_RR_A)
-	VALUES (domain.id, new_seq_no, 'A', rec_name, rec_ttl, rec_data);
+	VALUES (domain.id, new_seq_no, 'A', rec_name_c, rec_ttl, rec_data);
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_A
@@ -820,14 +820,14 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_AAAA
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name_in	regano.dns_name,
+	 rec_name	regano.dns_name,
 	 rec_data	regano.dns_RR_AAAA)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
-    rec_name		CONSTANT regano.dns_name NOT NULL
-			    := regano.canonicalize_record_name(rec_name_in,
+    rec_name_c		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name,
 							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add AAAA');
@@ -835,7 +835,7 @@ BEGIN
 
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_RR_AAAA)
-	VALUES (domain.id, new_seq_no, 'AAAA', rec_name, rec_ttl, rec_data);
+	VALUES (domain.id, new_seq_no, 'AAAA', rec_name_c, rec_ttl, rec_data);
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_AAAA
@@ -848,7 +848,7 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_DS
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name_in	regano.dns_name,
+	 rec_name	regano.dns_name,
 	 DS_key_tag	regano.uint16bit,
 	 DS_algorithm	regano.uint8bit,
 	 DS_digest_type	regano.uint8bit,
@@ -857,8 +857,8 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_DS
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
-    rec_name		CONSTANT regano.dns_name NOT NULL
-			    := regano.canonicalize_record_name(rec_name_in,
+    rec_name_c		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name,
 							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add DS');
@@ -866,7 +866,7 @@ BEGIN
 
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_RR_DS)
-	VALUES (domain.id, new_seq_no, 'DS', rec_name, rec_ttl,
+	VALUES (domain.id, new_seq_no, 'DS', rec_name_c, rec_ttl,
 		ROW(DS_key_tag, DS_algorithm, DS_digest_type, DS_digest));
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
@@ -881,15 +881,15 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_MX
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name_in	regano.dns_name,
+	 rec_name	regano.dns_name,
 	 MX_preference	regano.uint16bit,
 	 MX_exchange	regano.dns_name)
 	RETURNS void AS $$
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
-    rec_name		CONSTANT regano.dns_name NOT NULL
-			    := regano.canonicalize_record_name(rec_name_in,
+    rec_name_c		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name,
 							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add MX');
@@ -897,7 +897,7 @@ BEGIN
 
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_RR_MX)
-	VALUES (domain.id, new_seq_no, 'MX', rec_name, rec_ttl,
+	VALUES (domain.id, new_seq_no, 'MX', rec_name_c, rec_ttl,
 		ROW(MX_preference, MX_exchange));
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
@@ -911,7 +911,7 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_SRV
 	(session_id	uuid,
 	 zone_name	regano.dns_fqdn,
 	 rec_ttl	regano.dns_interval,
-	 rec_name_in	regano.dns_name,
+	 rec_name	regano.dns_name,
 	 SRV_priority	regano.uint16bit,
 	 SRV_weight	regano.uint16bit,
 	 SRV_port	regano.uint16bit,
@@ -920,8 +920,8 @@ CREATE OR REPLACE FUNCTION regano_api.zone_add_SRV
 DECLARE
     domain		regano.domains%ROWTYPE;
     new_seq_no		bigint;
-    rec_name		CONSTANT regano.dns_name NOT NULL
-			    := regano.canonicalize_record_name(rec_name_in,
+    rec_name_c		CONSTANT regano.dns_name NOT NULL
+			    := regano.canonicalize_record_name(rec_name,
 							       zone_name);
 BEGIN
     domain := regano.zone_verify_access(session_id, zone_name, 'add SRV');
@@ -929,7 +929,7 @@ BEGIN
 
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_RR_SRV)
-	VALUES (domain.id, new_seq_no, 'SRV', rec_name, rec_ttl,
+	VALUES (domain.id, new_seq_no, 'SRV', rec_name_c, rec_ttl,
 		ROW(SRV_priority, SRV_weight, SRV_port, SRV_target));
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
