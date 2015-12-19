@@ -782,9 +782,9 @@ BEGIN
 	VALUES (domain.id, new_seq_no, rec_type, rec_name, rec_ttl, rec_data);
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
-ALTER FUNCTION regano_api.zone_add_name
+ALTER FUNCTION regano_api.zone_add_text
 	(uuid, regano.dns_fqdn, regano.dns_interval, regano.dns_name,
-	 regano.dns_record_type, regano.dns_name)
+	 regano.dns_record_type, text)
 	OWNER TO regano;
 
 -- Add an A record
