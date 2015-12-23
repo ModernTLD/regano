@@ -55,7 +55,7 @@ Verify username and password, creating a session if successful.
 
 =cut
 
-sub login :Local :Args(0) {
+sub login :Local :Args(0) POST {
     my ( $self, $c ) = @_;
 
     my $username = $c->request->params->{username};
