@@ -83,6 +83,7 @@ foreach my $method (keys %METHODS) {
     no strict 'refs';
 
     *{$method} = sub {
+      use strict 'refs';
       my $self = shift;
       my $dbh = $self->dbh;
       my $sth = $dbh->prepare_cached($query);
@@ -93,6 +94,7 @@ foreach my $method (keys %METHODS) {
     no strict 'refs';
 
     *{$method} = sub {
+      use strict 'refs';
       my $self = shift;
       my $dbh = $self->dbh;
       my $sth = $dbh->prepare_cached($query);
@@ -105,6 +107,7 @@ foreach my $method (keys %METHODS) {
     no strict 'refs';
 
     *{$method} = sub {
+      use strict 'refs';
       my $self = shift;
       my $dbh = $self->dbh;
       my $sth = $dbh->prepare_cached($query);
@@ -117,6 +120,7 @@ foreach my $method (keys %METHODS) {
     no strict 'refs';
 
     *{$method} = sub {
+      use strict 'refs';
       my $self = shift;
       my $dbh = $self->dbh;
       my $sth = $dbh->prepare_cached($query);
