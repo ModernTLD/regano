@@ -6,23 +6,87 @@
    title = 'Regano Login'
  %]
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
-<h1>Login for [% regano.config.InstanceName | html %] registry</h1>
+<h1>[% regano.config.InstanceName | html %] registry</h1>
 
-<form action="/registrar/login" method="POST">
-  <table style="margin:auto">
-    <tr>
-      <td><label for="uname">Username</label></td>
-      <td><input type="text" name="username" maxlength="64" value="" id="uname"></td>
-    </tr>
-    <tr>
-      <td><label for="passw">Password</label></td>
-      <td><input type="password" name="password" maxlength="64" value="" id="passw"></td>
-    </tr>
-    <tr>
-      <td colspan="2" style="text-align:right"><input type="submit" value="Login"></td>
-    </tr>
-  </table>
-</form>
+[% IF acct -%]
+<div style="margin:3em; text-align: center">
+  [% SWITCH acct.status -%]
+  [%   CASE "password_mismatch" -%]
+  <div class="notify_errors">
+    The provided passwords did not match.
+  </div>
+  [%   CASE "username_exists" -%]
+  <div class="notify_errors">
+    An account already exists with the username "[% acct.name | html %]".
+  </div>
+  [%   CASE "db_error" -%]
+  <div class="notify_errors">
+    The database rejected the request.
+  </div>
+  [%   CASE "account_created" -%]
+  <div class="notify_success">
+    Account created.  You may now log in.
+  </div>
+  [% END %]
+</div>
+[% END ~%]
+
+<div>
+  <div style="float:left">
+    <form action="/registrar/login" method="POST">
+      <table style="margin:1em 5em">
+	<tr><th colspan="2">Login</th></tr>
+	<tr>
+	  <td><label for="luname">Username</label></td>
+	  <td><input type="text" name="username" maxlength="64" value="" id="luname"></td>
+	</tr>
+	<tr>
+	  <td><label for="lpassw">Password</label></td>
+	  <td><input type="password" name="password" maxlength="64" value="" id="lpassw"></td>
+	</tr>
+	<tr>
+	  <td colspan="2" style="text-align:right">
+	    <input type="submit" value="Login">
+	  </td>
+	</tr>
+      </table>
+    </form>
+  </div>
+  <div style="float:right">
+    <form action="/registrar/create_account" method="POST">
+      <table style="margin:1em 5em">
+	<tr><th colspan="2">Create Account</th></tr>
+	<tr>
+	  <td><label for="cuname">Username</label></td>
+	  <td><input type="text" name="username" maxlength="64" value="" id="cuname"></td>
+	</tr>
+	<tr>
+	  <td><label for="cpassw1">Password</label></td>
+	  <td><input type="password" name="password1" maxlength="64" value="" id="cpassw1"></td>
+	</tr>
+	<tr>
+	  <td><label for="cpassw2">Password (confirm)</label></td>
+	  <td><input type="password" name="password2" maxlength="64" value="" id="cpassw2"></td>
+	</tr>
+	<tr>
+	  <td colspan="2" style="text-align:center">Primary Contact</td>
+	</tr>
+	<tr>
+	  <td><label for="cname">Name</label></td>
+	  <td><input type="text" name="name" value="" id="cname"></td>
+	</tr>
+	<tr>
+	  <td><label for="cemail">Email address</label></td>
+	  <td><input type="text" name="email" value="" id="cemail">
+	    <tr>
+	      <td colspan="2" style="text-align:right">
+		<input type="submit" value="Create Account">
+	      </td>
+	    </tr>
+      </table>
+    </form>
+  </div>
+</div>
 
 <!--  LocalWords:  regano login username InstanceName html
  -->

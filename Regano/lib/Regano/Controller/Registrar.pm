@@ -6,6 +6,14 @@ BEGIN { require Regano::PasswordHelper; }
 
 BEGIN { extends 'Catalyst::Controller'; }
 
+has 'AuthFrontendDigest' => ( is => 'ro', isa => 'Str' );
+has 'AuthFrontendSaltLength' => ( is => 'ro', isa => 'Int' );
+
+__PACKAGE__->config(
+    AuthFrontendDigest => 'hmac_sha384/base64',
+    AuthFrontendSaltLength => 6
+);
+
 =head1 NAME
 
 Regano::Controller::Registrar - Catalyst Controller
@@ -48,6 +56,14 @@ sub index :Path :Args(0) {
 
     #$c->response->body('Matched Regano::Controller::Registrar in Registrar.');
     $c->stash( template => 'registrar/login.tt' );
+    my $status_cookie = $c->request->cookie('acct_status');
+    if (defined $status_cookie) {
+	$c->stash( acct => { status => $status_cookie->value,
+			     name => $c->request->cookie('acct_name')->value } );
+	$c->log->debug('Got a status cookie: '.$status_cookie->value);
+	$c->response->cookies->{acct_status} = { value => '', expires => '-1d' };
+	$c->response->cookies->{acct_name}   = { value => '', expires => '-1d' };
+    }
 }
 
 =head2 login
@@ -70,6 +86,50 @@ sub login :Local :Args(0) POST {
 
     $c->log->info('Login for user ['.$username.'] '.
 		  (defined($dbsession) ? 'succeeded.' : 'failed.'));
+
+    $c->response->redirect($c->uri_for_action('/registrar/index'));
+}
+
+=head2 create_account
+
+Create a new account.
+
+=cut
+
+sub create_account :Local :Args(0) POST {
+    my ( $self, $c ) = @_;
+
+    my $username = $c->request->params->{username};
+    my $password = $c->request->params->{password1};
+    my $password_mismatch = $password ne $c->request->params->{password2};
+    my $contact_name = $c->request->params->{name};
+    my $contact_email = $c->request->params->{email};
+    my $type = $self->AuthFrontendDigest;
+    my $salt = Regano::PasswordHelper::make_salt($self->AuthFrontendSaltLength);
+    my $digest = Regano::PasswordHelper::hash_password($type, $salt, $password);
+
+    $c->response->cookies->{acct_name} = { value => $username };
+    if ($password_mismatch) {
+	$c->response->cookies->{acct_status} = { value => 'password_mismatch' };
+    } else {
+	$c->log->info('Creating account for user ['.$username.'] '.
+		      'with contact name ['.$contact_name.'] '.
+		      'and email ['.$contact_email.'].'.
+		      ' (auth '.$type.'; salt '.$salt.')');
+
+	eval {
+	    $c->model('DB::API')->user_register($username,
+						$type, $salt, $digest,
+						$contact_name, $contact_email)
+	};
+	if ($@ =~ m/violates unique constraint.*users_username/) {
+	    $c->response->cookies->{acct_status} = { value => 'username_exists' };
+	} elsif ($@) {
+	    $c->response->cookies->{acct_status} = { value => 'db_error' };
+	} else {
+	    $c->response->cookies->{acct_status} = { value => 'account_created' };
+	}
+    }
 
     $c->response->redirect($c->uri_for_action('/registrar/index'));
 }
