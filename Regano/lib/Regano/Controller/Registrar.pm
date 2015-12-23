@@ -24,8 +24,9 @@ Catalyst Controller.
 
 sub auto :Private {
     my ( $self, $c ) = @_;
+    my $expires = $c->session_expires;
 
-    if ($c->session_expires != 0) {	# a frontend session exists
+    if (defined $expires && $expires != 0) {	# a frontend session exists
 	my $username =
 	    $c->model('DB::API')->session_check($c->session->{dbsession});
 	if (defined($username)) {	# a backend session exists
