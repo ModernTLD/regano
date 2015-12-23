@@ -44,6 +44,10 @@ sub auto :Private {
 	}
     }
 
+    $c->response->header('Cache-Control'
+			 => 'private, no-cache, no-store, must-revalidate');
+    $c->response->header('Pragma' => 'no-cache');
+
     1;
 }
 
