@@ -58,15 +58,23 @@ sub auto :Private {
 sub index :Path :Args(0) {
     my ( $self, $c ) = @_;
 
-    #$c->response->body('Matched Regano::Controller::Registrar in Registrar.');
-    $c->stash( template => 'registrar/login.tt' );
-    my $status_cookie = $c->request->cookie('acct_status');
-    if (defined $status_cookie) {
-	$c->stash( acct => { status => $status_cookie->value,
-			     name => $c->request->cookie('acct_name')->value } );
-	$c->log->debug('Got a status cookie: '.$status_cookie->value);
-	$c->response->cookies->{acct_status} = { value => '', expires => '-1d' };
-	$c->response->cookies->{acct_name}   = { value => '', expires => '-1d' };
+    if (defined($c->stash->{session})) {
+	# return account summary page
+	my $dbsession = $c->session->{dbsession};
+	$c->stash( template => 'registrar/summary.tt',
+		   user_info => $c->model('DB::API')->user_info($dbsession),
+		   contacts => $c->model('DB::API')->contact_list($dbsession) );
+    } else {
+	# return login page
+	$c->stash( template => 'registrar/login.tt' );
+	my $status_cookie = $c->request->cookie('acct_status');
+	if (defined $status_cookie) {
+	    $c->stash( acct => { status => $status_cookie->value,
+				 name => $c->request->cookie('acct_name')->value } );
+	    $c->log->debug('Got a status cookie: '.$status_cookie->value);
+	    $c->response->cookies->{acct_status} = { value => '', expires => '-1d' };
+	    $c->response->cookies->{acct_name}   = { value => '', expires => '-1d' };
+	}
     }
 }
 
