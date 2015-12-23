@@ -11,6 +11,10 @@
 [% IF acct -%]
 <div style="margin:3em; text-align: center">
   [% SWITCH acct.status -%]
+  [%   CASE "login_incorrect" -%]
+  <div class="notify_errors">
+    Login incorrect.
+  </div>
   [%   CASE "password_mismatch" -%]
   <div class="notify_errors">
     The provided passwords did not match.

@@ -86,7 +86,12 @@ sub login :Local :Args(0) POST {
     my $digest = Regano::PasswordHelper::hash_password($type, $salt, $password);
     my $dbsession = $c->model('DB::API')->user_login($username, $type, $salt, $digest);
 
-    $c->session( dbsession => $dbsession ) if (defined($dbsession));
+    if (defined($dbsession)) {
+	$c->session( dbsession => $dbsession );
+    } else {
+	$c->response->cookies->{acct_status} = { value => 'login_incorrect' };
+	$c->response->cookies->{acct_name}   = { value => $username };
+    }
 
     $c->log->info('Login for user ['.$username.'] '.
 		  (defined($dbsession) ? 'succeeded.' : 'failed.'));
