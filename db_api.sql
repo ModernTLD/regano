@@ -14,7 +14,9 @@
 
 
 -- The type definitions in db_types.sql must already be installed.
--- The table definitions in db_tables.sql are needed for these to actually work.
+-- The table definitions in db_tables.sql must already be installed.
+-- The function definitions in db_functions.sql must already be installed.
+-- The configuration in db_config.sql must be loaded for these to actually work.
 
 -- Inquire about the status of a domain.
 CREATE OR REPLACE FUNCTION regano_api.domain_status

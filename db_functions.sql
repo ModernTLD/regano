@@ -14,7 +14,7 @@
 
 
 -- The type definitions in db_types.sql must already be installed.
--- The table definitions in db_tables.sql are needed for these to actually work.
+-- The table definitions in db_tables.sql must already be installed.
 
 CREATE OR REPLACE FUNCTION regano.config_set
 	(key text, value bigint)
