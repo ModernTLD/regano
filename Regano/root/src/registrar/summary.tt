@@ -11,9 +11,10 @@
 <h2>Contacts</h2>
 
 <table style="margin: 1em 5em">
-  <tr><th>Name</th><th colspan="2">Email Address</th><th></th></tr>
+  <tr><th>ID</th><th>Name</th><th colspan="2">Email Address</th><th></th></tr>
   [% FOREACH contact IN contacts %]
   <tr>
+    <td>[% contact.id %]</td>
     <td>[% contact.name %]</td>
     <td>[% contact.email %]</td>
     <td>
