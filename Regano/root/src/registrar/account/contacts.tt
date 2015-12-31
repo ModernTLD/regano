@@ -1,0 +1,128 @@
+[%# <!-- This -*- HTML -*- template is part of Regano.
+	 Regano is free software and may be redistributed and/or modified
+	 under the same terms as Perl itself. --> ~%]
+
+[% META
+   title = 'Regano Contact Edit'
+ %]
+[%# <!-- To be wrapped inside "main-copy" div. --> -%]
+<h1>[% regano.config.InstanceName | html %] registry &mdash; [% session.user %] &mdash; Contacts</h1>
+
+[% IF status -%]
+<div style="margin: 3em; text-align: center">
+  [% FOREACH message IN status -%]
+  [% SWITCH message.0 -%]
+  [%   CASE "verify_primary" -%]
+  <div class="notify_errors">
+    Only a verified email address can be set as your primary contact.
+    The email address for contact ID [% message.1 %] is not yet verified.
+  </div>
+  [%   CASE "dberr_primary" -%]
+  <div class="notify_errors">
+    The database rejected the change of primary contact.
+  </div>
+  [%   CASE "set_primary" -%]
+  <div class="notify_success">
+    Contact ID [% message.1 %] is now your primary contact.
+  </div>
+  [%   CASE "dberr_name" -%]
+  <div class="notify_errors">
+    The database rejected changing the name for contact ID [% message.1 %]
+    to "[% message.2 %]".
+  </div>
+  [%   CASE "update_name" -%]
+  <div class="notify_success">
+    Contact ID [% message.1 %] name changed to "[% message.2 %]".
+  </div>
+  [%   CASE "verify_primary_email" -%]
+  <div class="notify_errors">
+    A verified email address for your primary contact may not be directly changed.
+    Instead, you must add a new contact, verify the new email address, then set
+    the new contact as your primary contact.
+  </div>
+  [%   CASE "dberr_email" -%]
+  <div class="notify_errors">
+    The database rejected changing the email address for contact ID [% message.1 %]
+    to "[% message.2 %]".
+  </div>
+  [%   CASE "update_email" -%]
+  <div class="notify_success">
+    Contact ID [% message.1 %] email address changed to "[% message.2 %]".
+  </div>
+  [%   CASE "dberr_email_verify" -%]
+  <div class="notify_errors">
+    The database rejected the request to verify "[% message.2 %]" for contact ID
+    [% message.1 %].
+  </div>
+  [%   CASE "verify_email" -%]
+  <div class="notify_success">
+    A verification email will be sent to "[% message.2 %]" to verify contact ID
+    [% message.1 %].
+  </div>
+  [% END ~%]
+  [% END ~%]
+</div>
+[% END ~%]
+
+<form action="[% regano.uri_for_action('/registrar/account/contacts_edit') %]" method="POST">
+  [% FOREACH contact IN contacts %]
+  <table style="margin: 1em 5em">
+    <tr>
+      <th>ID</th>
+      <td>
+	<span style="margin: 0 2em">[% contact.id %]</span>
+	<input type="radio" name="set_primary_id"
+	       value="[% contact.id %]" id="set-pri-[% contact.id %]"
+	       [%= IF contact.id == user_info.contact_id =%] checked [%~ END ~%]>
+	<label for="set-pri-[% contact.id %]">
+	  [%~ IF contact.id == user_info.contact_id ~%]
+	  Keep as primary
+	  [%~ ELSE ~%]
+	  Set as primary
+	  [%~ END ~%]
+	</label>
+      </td>
+    </tr>
+    <tr>
+      <th>
+	<label for="contact-[% contact.id %]-name">Name</label>
+      </th>
+      <td>
+	<input type="text" name="contact_[% contact.id %]_name"
+	       value="[% contact.name %]" size="24" style="min-width: 10em"
+	       id="contact-[% contact.id %]-name">
+      </td>
+    </tr>
+    <tr>
+      <th rowspan="2">
+	<label for="contact-[% contact.id %]-email">Email Address</label>
+      </th>
+      <td>
+	<input type="text" name="contact_[% contact.id %]_email"
+	       value="[% contact.email %]" size="24"
+	       id="contact-[% contact.id %]-email">
+      </td>
+    </tr>
+    <tr>
+      <td style="text-align: center">
+	[% IF contact.email_verified ~%]
+	<span style="margin: 0 1em;color: green">Verified</span>
+	[%~ ELSE ~%]
+	<span style="margin: 0 1em;color: red">Not verified</span>
+	[%~ END %]
+	<span style="float: right">
+	  <label for="contact-[% contact.id %]-email-verify">
+	    [%~ IF contact.email_verified ~%]Rev[%~ ELSE ~%]V[%~ END ~%]erify?</label>
+	  <input type="checkbox" name="contact_[% contact.id %]_email_verify" value=""
+		 id="contact-[% contact.id %]-email-verify">
+	</span>
+      </td>
+    </tr>
+  </table>
+  [% END %]
+  <input type="submit" value="Submit">
+  <input type="reset" value="Reset">
+</form>
+
+<!--  LocalWords:  regano InstanceName html FOREACH erify dberr
+ -->
