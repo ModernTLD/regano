@@ -37,7 +37,7 @@
 
 <div>
   <div style="float:left">
-    <form action="/registrar/login" method="POST">
+    <form action="[% regano.uri_for_action('/registrar/login') %]" method="POST">
       <table style="margin:1em 5em">
 	<tr><th colspan="2">Login</th></tr>
 	<tr>
@@ -57,7 +57,7 @@
     </form>
   </div>
   <div style="float:right">
-    <form action="/registrar/create_account" method="POST">
+    <form action="[% regano.uri_for_action('/registrar/create_account') %]" method="POST">
       <table style="margin:1em 5em">
 	<tr><th colspan="2">Create Account</th></tr>
 	<tr>
