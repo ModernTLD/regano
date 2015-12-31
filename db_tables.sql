@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS regano.users (
 	username	varchar(64) UNIQUE,
 	password	regano.password,
 	-- id of primary contact for this user
-	contact_id	bigint NOT NULL DEFAULT 0,
+	contact_id	integer NOT NULL DEFAULT 0,
 	-- timestamp of user registration
 	registered	timestamp with time zone
 				NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -47,26 +47,32 @@ CREATE INDEX ON regano.sessions (start);
 
 -- Contact information for users and domains
 CREATE TABLE IF NOT EXISTS regano.contacts (
-	id		bigserial PRIMARY KEY,
 	owner_id	bigint NOT NULL REFERENCES regano.users (id),
+	id		integer NOT NULL,
 	name		text NOT NULL,
 	email		text NOT NULL,
-	email_verified	boolean NOT NULL DEFAULT FALSE
+	email_verified	boolean NOT NULL DEFAULT FALSE,
+	PRIMARY KEY(owner_id, id)
 ) WITH (fillfactor = 90);
 CREATE INDEX ON regano.contacts (owner_id);
 
 ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
-	FOREIGN KEY (contact_id) REFERENCES regano.contacts (id)
-				 DEFERRABLE INITIALLY DEFERRED;
+	FOREIGN KEY (id, contact_id)
+		REFERENCES regano.contacts (owner_id, id)
+			DEFERRABLE INITIALLY DEFERRED;
 
 -- Email verifications not yet completed
 CREATE TABLE IF NOT EXISTS regano.contact_verifications (
 	id		uuid PRIMARY KEY,
 	key		uuid NOT NULL,
-	contact_id	bigint UNIQUE NOT NULL REFERENCES regano.contacts (id),
+	user_id		bigint NOT NULL,
+	contact_id	integer NOT NULL,
 	email_sent	boolean NOT NULL DEFAULT FALSE,
 	start		timestamp with time zone
-				NOT NULL DEFAULT CURRENT_TIMESTAMP
+				NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	UNIQUE (user_id, contact_id),
+	FOREIGN KEY (user_id, contact_id)
+		REFERENCES regano.contacts (owner_id, id)
 );
 CREATE INDEX ON regano.contact_verifications (start);
 

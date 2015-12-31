@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 2 + 2 + 3 + 3 + 3 + 2 + 2 + 1 + 1;
+use Test::More tests => 2 + 2 + 2 + 2 + 2 + 1 + 2 + 1 + 1;
 
 use DBI;
 use strict;
@@ -114,13 +114,6 @@ sub verify_contact ($$) {
 			     'Test User Public 2', 'spamtrap2@example.com');
   like($contacts{test1p2}, qr/\d+/, q{Add another contact for 'test1'});
 
-  eval {
-    local $dbh->{PrintError};
-    $dbh->selectrow_array(q{SELECT regano_api.contact_verify_begin(?, ?)}, {},
-			  $SESSIONS{test1}, $contacts{test2});
-  };
-  like($@, qr/not belonging to current user/,
-       q{Check ownership of contact for verification});
   subtest q{Verify primary contact for 'test1'} => sub {
     verify_contact $SESSIONS{test1}, $contacts{test1};
   };
@@ -134,24 +127,10 @@ sub verify_contact ($$) {
   };
   like($@, qr/Only a verified email address may be set as primary contact/,
        q{Only a verified email address may be set as primary contact});
-  eval {
-    local $dbh->{PrintError};
-    $dbh->selectrow_array($set_primary_st, {}, $SESSIONS{test1}, $contacts{test2});
-  };
-  like($@, qr/not belonging to current user/,
-       q{Check ownership of contact for primary contact});
   $dbh->selectrow_array($set_primary_st, {}, $SESSIONS{test1}, $contacts{test1p1});
   pass(q{Change primary contact for 'test1'});
   $dbh->selectrow_array($set_primary_st, {}, $SESSIONS{test1}, $contacts{test1});
 
-  eval {
-    local $dbh->{PrintError};
-    $dbh->selectrow_array($contact_update_email_st, {},
-			  $SESSIONS{test1}, $contacts{test2},
-			  'bogus@example.com');
-  };
-  like($@, qr/not belonging to current user/,
-       q{Check ownership of contact before changing email address});
   eval {
     local $dbh->{PrintError};
     $dbh->selectrow_array($contact_update_email_st, {},
@@ -165,13 +144,6 @@ sub verify_contact ($$) {
 			'spamtrap1@example.com');
   pass(qq{Change email address for contact $contacts{test1p1}});
 
-  eval {
-    local $dbh->{PrintError};
-    $dbh->selectrow_array($contact_update_name_st, {},
-			  $SESSIONS{test1}, $contacts{test2}, 'bogus');
-  };
-  like($@, qr/not belonging to current user/,
-       q{Check ownership of contact before changing name});
   $dbh->selectrow_array($contact_update_name_st, {},
 			$SESSIONS{test1}, $contacts{test1}, 'Test User 1A');
   pass(qq{Change name for contact $contacts{test1}});

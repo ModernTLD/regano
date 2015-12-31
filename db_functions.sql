@@ -73,6 +73,14 @@ ALTER FUNCTION regano.config_get (text)
 	OWNER TO regano;
 
 
+CREATE OR REPLACE FUNCTION regano.contact_next_id (bigint)
+	RETURNS integer AS $$
+SELECT COALESCE(MAX(id), 0) + 1
+    FROM regano.contacts WHERE owner_id = $1;
+$$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
+ALTER FUNCTION regano.contact_next_id (bigint)
+	OWNER TO regano;
+
 CREATE OR REPLACE FUNCTION regano.username (regano.sessions)
 	RETURNS text AS $$
 SELECT username FROM regano.users WHERE id = $1.user_id;

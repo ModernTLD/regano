@@ -108,19 +108,14 @@ DECLARE
 			    := (regano.config_get('auth/crypt')).number;
 
     new_user_id		bigint; -- row ID of new user record
-    new_contact_id	bigint; -- row ID of new user's primary contact record
 BEGIN
-    INSERT INTO users (username, password)
+    INSERT INTO users (username, password, contact_id)
 	VALUES (username_, ROW(password_.xdigest, password_.xsalt,
 				crypt(password_.digest,
-				      gen_salt(crypt_alg, crypt_iter))))
+				      gen_salt(crypt_alg, crypt_iter))), 1)
 	RETURNING id INTO STRICT new_user_id;
-    INSERT INTO contacts (owner_id, name, email)
-	VALUES (new_user_id, contact_name, contact_email)
-	RETURNING id INTO STRICT new_contact_id;
-    UPDATE users
-	SET contact_id = new_contact_id
-	WHERE id = new_user_id;
+    INSERT INTO contacts (owner_id, id, name, email)
+	VALUES (new_user_id, 1, contact_name, contact_email);
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.user_register (text, regano.password, text, text)
@@ -293,7 +288,7 @@ ALTER FUNCTION regano_api.user_info (uuid)
 -- Retrieve the ID of the current user's primary contact record.
 CREATE OR REPLACE FUNCTION regano_api.contact_primary_id
 	(session_id uuid)
-	RETURNS bigint AS $$
+	RETURNS integer AS $$
 SELECT contact_id FROM regano.users WHERE id = regano.session_user_id($1)
 $$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.contact_primary_id (uuid)
@@ -301,20 +296,15 @@ ALTER FUNCTION regano_api.contact_primary_id (uuid)
 
 -- Change the primary contact for the current user.
 CREATE OR REPLACE FUNCTION regano_api.user_set_primary_contact
-	(session_id uuid, contact_id bigint)
+	(session_id uuid, contact_id integer)
 	RETURNS void AS $$
 DECLARE
     contact	regano.contacts%ROWTYPE;
     session	regano.sessions%ROWTYPE;
 BEGIN
     SELECT * INTO STRICT session FROM regano.sessions WHERE id = session_id;
-    SELECT * INTO STRICT contact FROM regano.contacts WHERE id = contact_id;
-
-    IF session.user_id <> contact.owner_id THEN
-	RAISE EXCEPTION
-	'attempt made to select contact (%) not belonging to current user (%)',
-	    contact.id, regano.username(session);
-    END IF;
+    SELECT * INTO STRICT contact FROM regano.contacts
+	WHERE owner_id = session.user_id AND id = contact_id;
 
     IF NOT contact.email_verified THEN
 	RAISE EXCEPTION
@@ -326,7 +316,7 @@ BEGIN
 	WHERE id = session.user_id;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
-ALTER FUNCTION regano_api.user_set_primary_contact (uuid, bigint)
+ALTER FUNCTION regano_api.user_set_primary_contact (uuid, integer)
 	OWNER TO regano;
 
 -- Retrieve all contact records belonging to the current user.
@@ -341,9 +331,10 @@ ALTER FUNCTION regano_api.contact_list (uuid)
 -- Add a contact record for the current user.
 CREATE OR REPLACE FUNCTION regano_api.contact_add
 	(session_id uuid, name text, email text)
-	RETURNS bigint AS $$
-INSERT INTO regano.contacts (owner_id, name, email)
-    VALUES (regano.session_user_id($1), $2, $3)
+	RETURNS integer AS $$
+INSERT INTO regano.contacts (owner_id, id, name, email)
+    VALUES (regano.session_user_id($1),
+	    regano.contact_next_id(regano.session_user_id($1)), $2, $3)
     RETURNING id;
 $$ LANGUAGE SQL VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.contact_add (uuid, text, text)
@@ -351,51 +342,41 @@ ALTER FUNCTION regano_api.contact_add (uuid, text, text)
 
 -- Update the name field of a contact record.
 CREATE OR REPLACE FUNCTION regano_api.contact_update_name
-	(session_id uuid, contact_id bigint, value text)
+	(session_id uuid, contact_id integer, value text)
 	RETURNS void AS $$
 DECLARE
     contact	regano.contacts%ROWTYPE;
     session	regano.sessions%ROWTYPE;
 BEGIN
     SELECT * INTO STRICT session FROM regano.sessions WHERE id = session_id;
-    SELECT * INTO STRICT contact FROM regano.contacts WHERE id = contact_id
+    SELECT * INTO STRICT contact FROM regano.contacts
+	WHERE owner_id = session.user_id AND id = contact_id
 	FOR UPDATE;
-
-    IF session.user_id <> contact.owner_id THEN
-	RAISE EXCEPTION
-	'attempt made to update contact (%) not belonging to current user (%)',
-	    contact.id, regano.username(session);
-    END IF;
 
     UPDATE regano.contacts
 	SET name = value
-	WHERE id = contact_id;
+	WHERE owner_id = session.user_id AND id = contact_id;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
-ALTER FUNCTION regano_api.contact_update_name (uuid, bigint, text)
+ALTER FUNCTION regano_api.contact_update_name (uuid, integer, text)
 	OWNER TO regano;
 
 -- Update the email address field of a contact record.
 CREATE OR REPLACE FUNCTION regano_api.contact_update_email
-	(session_id uuid, contact_id bigint, value text)
+	(session_id uuid, contact_id integer, value text)
 	RETURNS void AS $$
 DECLARE
     contact		regano.contacts%ROWTYPE;
     session		regano.sessions%ROWTYPE;
 
-    primary_contact_id	bigint;
+    primary_contact_id	integer;
 BEGIN
     SELECT * INTO STRICT session FROM regano.sessions WHERE id = session_id;
     SELECT users.contact_id INTO STRICT primary_contact_id
 	FROM regano.users WHERE id = session.user_id;
-    SELECT * INTO STRICT contact FROM regano.contacts WHERE id = contact_id
+    SELECT * INTO STRICT contact FROM regano.contacts
+	WHERE owner_id = session.user_id AND id = contact_id
 	FOR UPDATE;
-
-    IF session.user_id <> contact.owner_id THEN
-	RAISE EXCEPTION
-	'attempt made to update contact (%) not belonging to current user (%)',
-	    contact.id, regano.username(session);
-    END IF;
 
     IF contact_id = primary_contact_id AND contact.email_verified THEN
 	RAISE EXCEPTION
@@ -409,38 +390,35 @@ BEGIN
     -- change the stored email address
     UPDATE regano.contacts
 	SET email_verified = FALSE, email = value
-	WHERE id = contact_id;
+	WHERE owner_id = session.user_id AND id = contact_id;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
-ALTER FUNCTION regano_api.contact_update_email (uuid, bigint, text)
+ALTER FUNCTION regano_api.contact_update_email (uuid, integer, text)
 	OWNER TO regano;
 
 
 -- Begin the process of verifying a contact record.
 CREATE OR REPLACE FUNCTION regano_api.contact_verify_begin
-	(session_id uuid, contact_id bigint)
+	(session_id uuid, contact_id integer)
 	RETURNS void AS $$
 DECLARE
     contact	regano.contacts%ROWTYPE;
     session	regano.sessions%ROWTYPE;
 BEGIN
     SELECT * INTO STRICT session FROM regano.sessions WHERE id = session_id;
-    SELECT * INTO STRICT contact FROM regano.contacts WHERE id = contact_id;
-
-    IF session.user_id <> contact.owner_id THEN
-	RAISE EXCEPTION
-	'attempt made to verify contact (%) not belonging to current user (%)',
-	    contact.id, regano.username(session);
-    END IF;
+    SELECT * INTO STRICT contact FROM regano.contacts
+	WHERE owner_id = session.user_id AND id = contact_id;
 
     DELETE FROM regano.contact_verifications
-	WHERE contact_verifications.contact_id = contact_verify_begin.contact_id;
-    INSERT INTO regano.contact_verifications (id, key, contact_id)
-	VALUES (gen_random_uuid(), gen_random_uuid(), contact_id);
+	WHERE contact_verifications.contact_id = contact_verify_begin.contact_id
+	  AND contact_verifications.user_id = session.user_id;
+    INSERT INTO regano.contact_verifications (id, key, user_id, contact_id)
+	VALUES (gen_random_uuid(), gen_random_uuid(),
+		session.user_id, contact_id);
     NOTIFY regano__contact_verifications;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
-ALTER FUNCTION regano_api.contact_verify_begin (uuid, bigint)
+ALTER FUNCTION regano_api.contact_verify_begin (uuid, integer)
 	OWNER TO regano;
 
 -- Complete verification of a contact record.
@@ -457,7 +435,7 @@ DECLARE
     pending_domain	regano.pending_domains%ROWTYPE;
     verification	regano.contact_verifications%ROWTYPE;
 
-    user_id		bigint;	-- row ID of user record
+    is_primary_contact	boolean;
 BEGIN
     -- clean up expired verifications
     DELETE
@@ -474,13 +452,17 @@ BEGIN
     -- mark email address as verified
     UPDATE regano.contacts
 	SET email_verified = TRUE
-	WHERE id = verification.contact_id
-	RETURNING owner_id INTO STRICT user_id;
+	WHERE owner_id = verification.user_id AND id = verification.contact_id;
+    -- check if a primary contact was verified
+    SELECT users.contact_id = verification.contact_id
+	INTO STRICT is_primary_contact
+	FROM regano.users
+	WHERE id = verification.user_id;
     -- check for a pending domain
     SELECT * INTO pending_domain
 	FROM regano.pending_domains
-	WHERE pending_domains.user_id = var.user_id;
-    IF FOUND THEN
+	WHERE pending_domains.user_id = verification.user_id;
+    IF FOUND AND is_primary_contact THEN
 	-- register the pending domain
 	DELETE
 	    FROM regano.pending_domains
@@ -489,7 +471,7 @@ BEGIN
 	INSERT INTO regano.domains
 	    (domain_name, domain_tail, owner_id, expiration)
 	    VALUES (pending_domain.domain_name, pending_domain.domain_tail,
-		    user_id, now() + domain_term);
+		    verification.user_id, now() + domain_term);
     END IF;
     -- clean up the successful verification
     DELETE
@@ -531,7 +513,7 @@ BEGIN
 
     SELECT email_verified INTO STRICT verified
 	FROM regano.users JOIN regano.contacts
-	    ON (contact_id = contacts.id)
+	    ON owner_id = user_id AND contact_id = contacts.id
 	WHERE regano.users.id = user_id;
 
     IF verified THEN
