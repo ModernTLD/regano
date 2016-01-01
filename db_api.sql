@@ -570,7 +570,8 @@ BEGIN
     END IF;
 
     UPDATE regano.domains
-	SET expiration = now() + domain_term
+	SET expiration = now() + domain_term,
+	    last_update = now()
 	WHERE id = domain.id
 	RETURNING expiration INTO STRICT result;
     RETURN result;
@@ -611,7 +612,8 @@ BEGIN
     END IF;
 
     UPDATE regano.domains
-	SET expiration = now()
+	SET expiration = now(),
+	    last_update = now()
 	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
@@ -651,7 +653,8 @@ BEGIN
     END IF;
 
     UPDATE regano.domains
-	SET default_ttl = new_ttl
+	SET default_ttl = new_ttl,
+	    last_update = now()
 	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
@@ -677,6 +680,9 @@ BEGIN
     DELETE
 	FROM regano.domain_records
 	WHERE domain_id = domain.id;
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_clear (uuid, regano.dns_fqdn)
@@ -705,6 +711,9 @@ BEGIN
 	VALUES (domain.id, 0, 'SOA', '@', rec_ttl,
 		ROW(zone_name, SOA_mbox, SOA_refresh, SOA_retry,
 		    SOA_expire, SOA_minimum));
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_SOA
@@ -735,6 +744,9 @@ BEGIN
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_name)
 	VALUES (domain.id, new_seq_no, rec_type, rec_name_c, rec_ttl, rec_data);
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_name
@@ -764,6 +776,9 @@ BEGIN
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_text)
 	VALUES (domain.id, new_seq_no, rec_type, rec_name_c, rec_ttl, rec_data);
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_text
@@ -792,6 +807,9 @@ BEGIN
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_RR_A)
 	VALUES (domain.id, new_seq_no, 'A', rec_name_c, rec_ttl, rec_data);
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_A
@@ -820,6 +838,9 @@ BEGIN
     INSERT INTO regano.domain_records
 	(domain_id, seq_no, type, name, ttl, data_RR_AAAA)
 	VALUES (domain.id, new_seq_no, 'AAAA', rec_name_c, rec_ttl, rec_data);
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_AAAA
@@ -852,6 +873,9 @@ BEGIN
 	(domain_id, seq_no, type, name, ttl, data_RR_DS)
 	VALUES (domain.id, new_seq_no, 'DS', rec_name_c, rec_ttl,
 		ROW(DS_key_tag, DS_algorithm, DS_digest_type, DS_digest));
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_DS
@@ -883,6 +907,9 @@ BEGIN
 	(domain_id, seq_no, type, name, ttl, data_RR_MX)
 	VALUES (domain.id, new_seq_no, 'MX', rec_name_c, rec_ttl,
 		ROW(MX_preference, MX_exchange));
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_MX
@@ -915,6 +942,9 @@ BEGIN
 	(domain_id, seq_no, type, name, ttl, data_RR_SRV)
 	VALUES (domain.id, new_seq_no, 'SRV', rec_name_c, rec_ttl,
 		ROW(SRV_priority, SRV_weight, SRV_port, SRV_target));
+    UPDATE regano.domains
+	SET last_update = now()
+	WHERE id = domain.id;
 END
 $$ LANGUAGE plpgsql VOLATILE CALLED ON NULL INPUT SECURITY DEFINER;
 ALTER FUNCTION regano_api.zone_add_SRV
