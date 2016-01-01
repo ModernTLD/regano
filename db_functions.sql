@@ -72,6 +72,20 @@ $$ LANGUAGE SQL STABLE STRICT SECURITY INVOKER;
 ALTER FUNCTION regano.config_get (text)
 	OWNER TO regano;
 
+CREATE OR REPLACE FUNCTION regano.advance_timestamp_by_config_item
+	(timestamp with time zone, regano.config)
+	RETURNS timestamp with time zone AS $$
+SELECT $1 + $2.interval
+$$ LANGUAGE SQL IMMUTABLE STRICT SECURITY INVOKER;
+ALTER FUNCTION regano.advance_timestamp_by_config_item
+	(timestamp with time zone, regano.config)
+	OWNER TO regano;
+CREATE OPERATOR + (
+    leftarg = timestamp with time zone,
+    rightarg = regano.config,
+    procedure = regano.advance_timestamp_by_config_item
+);
+
 
 CREATE OR REPLACE FUNCTION regano.contact_next_id (bigint)
 	RETURNS integer AS $$
