@@ -24,7 +24,8 @@
 	  [% IF session %]
 	  Logged in as [% session.user | html %]
 	  <span> | </span>
-	  <form action="/registrar/logout" method="POST">
+	  <form action="[% regano.uri_for_action('/registrar/logout') %]"
+		method="POST">
 	    <input type="submit" value="Logout">
 	  </form>
 	  [% ELSE %]
