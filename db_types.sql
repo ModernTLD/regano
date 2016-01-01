@@ -234,3 +234,18 @@ ALTER TYPE regano.domain_status		OWNER TO regano;
 
 CREATE TYPE regano.domain_mode AS ENUM ('INLINE', 'HOSTED', 'DELEGATED');
 ALTER TYPE regano.domain_mode		OWNER TO regano;
+
+-- This is summary information for a pending domain.
+CREATE TYPE regano.pending_domain AS (
+	name		text,
+	start		timestamp with time zone,
+	expire		timestamp with time zone
+);
+
+-- This is summary information for a registered domain.
+CREATE TYPE regano.domain AS (
+	name		text,
+	registered	timestamp with time zone,
+	expiration	timestamp with time zone,
+	last_update	timestamp with time zone
+);

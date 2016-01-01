@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 4*2 + 2 + 3 + 7;
+use Test::More tests => 4*2 + 2 + 4 + 8;
 
 use DBI;
 use strict;
@@ -109,8 +109,13 @@ sub check_status_and_reason ($$) {
     (q{UPDATE regano.domains
 	SET expiration = expiration - (regano.config_get('domain/grace_period')).interval
 	WHERE domain_name = ? AND domain_tail = '.test.'});
+  my $check_pending_st = $dbh->prepare
+    (q{SELECT * FROM regano_api.domain_check_pending(?)});
+  my $domain_list_st = $dbh->prepare
+    (q{SELECT * FROM regano_api.domain_list(?)});
 
   my ($result, $expire1, $expire2);
+  my ($registered, $now, $expires);
 
   # clean up after a previous test run
   $result = $dbh->selectrow_array($domain_status_st, {}, 'test.test.');
@@ -126,15 +131,25 @@ sub check_status_and_reason ($$) {
   check_status_and_reason 'test.example.', 'ELSEWHERE';
   check_status_and_reason 'test.test.', 'AVAILABLE';
 
+  $dbh->begin_work;
+  ($registered) = $dbh->selectrow_array(q{SELECT now()});
   $result = $dbh->selectrow_array($domain_register_st, {},
 				  $SESSIONS{test1}, 'test.test.');
+  $dbh->commit;
   is($result, 'REGISTERED', qq{Register domain 'test.test.'});
 
+  $dbh->begin_work;
+  ($now, $expires) = $dbh->selectrow_array
+    (q{SELECT now(), now() + regano.config_get('domain/pend_term')});
   $result = $dbh->selectrow_array($domain_register_st, {},
 				  $SESSIONS{test2}, 'test-pend.test.');
+  $dbh->commit;
   is($result, 'PENDING', qq{Register pending domain 'test-pend.test.'});
 
   check_status 'test-pend.test.', 'PENDING';
+  is_deeply($dbh->selectall_arrayref($check_pending_st, {}, $SESSIONS{test2}),
+	    [['test-pend.test.', $now, $expires]],
+	    q{Pending domain listed for 'test2'});
   subtest q{Verify primary contact for 'test2'} => sub {
     my $cid = $dbh->selectrow_array(q{SELECT regano_api.contact_primary_id(?)},
 				    {}, $SESSIONS{test2});
@@ -150,11 +165,19 @@ sub check_status_and_reason ($$) {
   check_status 'test.test.', 'EXPIRED';
 
   $expire1 = $dbh->selectrow_array($get_expiration_st, {}, 'test');
+  $dbh->begin_work;
+  ($now, $expires) = $dbh->selectrow_array
+    (q{SELECT now(), now() + regano.config_get('domain/term')});
   $dbh->selectrow_array($domain_renew_st, {},
 			$SESSIONS{test1}, 'test.test.');
+  $dbh->commit;
   $expire2 = $dbh->selectrow_array($get_expiration_st, {}, 'test');
   isnt($expire1, $expire2, qq{Renew domain 'test.test.'});
   check_status 'test.test.', 'REGISTERED';
+
+  is_deeply($dbh->selectall_arrayref($domain_list_st, {}, $SESSIONS{test1}),
+	    [['test.test.', $registered, $expires, $now]],
+	    q{List domains for 'test1'});
 
   $expire1 = $dbh->selectrow_array($get_expiration_st, {}, 'test-pend');
   $dbh->selectrow_array($domain_release_st, {},

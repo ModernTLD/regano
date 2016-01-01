@@ -484,6 +484,28 @@ ALTER FUNCTION regano_api.contact_verify_complete (uuid, uuid)
 	OWNER TO regano;
 
 
+-- Retrieve information about a pending domain belonging to the current user.
+CREATE OR REPLACE FUNCTION regano_api.domain_check_pending
+	(uuid)
+	RETURNS regano.pending_domain AS $$
+SELECT  domain_name||domain_tail AS name,
+	start, start + regano.config_get('domain/pend_term') AS expire
+    FROM regano.pending_domains WHERE user_id = regano.session_user_id($1)
+$$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.domain_check_pending (uuid)
+	OWNER TO regano;
+
+-- Retrieve all domains belonging to the current user.
+-- The domain table is public; this is for the account overview page.
+CREATE OR REPLACE FUNCTION regano_api.domain_list
+	(uuid)
+	RETURNS SETOF regano.domain AS $$
+SELECT domain_name||domain_tail AS name, registered, expiration, last_update
+    FROM regano.domains WHERE owner_id = regano.session_user_id($1)
+$$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.domain_list (uuid)
+	OWNER TO regano;
+
 -- Register an available domain.
 CREATE OR REPLACE FUNCTION regano_api.domain_register
 	(uuid, regano.dns_fqdn)
