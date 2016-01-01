@@ -3,7 +3,7 @@
 	 under the same terms as Perl itself. --> ~%]
 
 [% META
-   title = 'Regano Account Summary'
+   title = 'Regano Account Overview'
  %]
 [%~ navPage = [ 'registrar' 'overview' ] ~%]
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
