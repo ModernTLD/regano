@@ -39,15 +39,21 @@
 	    [% regano.config.InstanceDescription | html %]</span>
 	</h1>
       </div>
-      <div class="subHeader">
-	sub header?
-      </div>
     </div>
 
     <div id="side-bar">
       <div>
 	<ul>
 	  <li>TODO</li>
+	  <li>
+	    [% IF navPage.0 == "registrar" %]
+	    <a href="[% regano.uri_for_action('/registrar/index') %]"
+	       class="thisPage">Registrar</a>
+	    [% INCLUDE "registrar/sidebar.tt" IF navPage.1 %]
+	    [% ELSE %]
+	    <a href="[% regano.uri_for_action('/registrar/index') %]">Registrar</a>
+	    [% END %]
+	  </li>
 	</ul>
       </div>
     </div>
@@ -67,7 +73,7 @@
   </body>
 </html>
 
-<!--  LocalWords:  regano FOREACH TopBarLink html InstanceName
+<!--  LocalWords:  regano FOREACH TopBarLink html InstanceName navPage tt
  -->
-<!--  LocalWords:  InstanceDescription
+<!--  LocalWords:  InstanceDescription OpenNIC
  -->

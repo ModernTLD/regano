@@ -5,6 +5,7 @@
 [% META
    title = 'Regano Login'
  %]
+[%~ navPage = [ 'registrar' ] ~%]
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
 <h1>[% regano.config.InstanceName | html %] registry</h1>
 

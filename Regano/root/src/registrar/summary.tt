@@ -5,6 +5,7 @@
 [% META
    title = 'Regano Account Summary'
  %]
+[%~ navPage = [ 'registrar' 'overview' ] ~%]
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
 <h1>[% regano.config.InstanceName | html %] registry &mdash; [% session.user %]</h1>
 

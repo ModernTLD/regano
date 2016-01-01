@@ -1,0 +1,22 @@
+[%# <!-- This -*- HTML -*- template is part of Regano.
+	 Regano is free software and may be redistributed and/or modified
+	 under the same terms as Perl itself. --> ~%]
+
+[% MACRO sidebar_link(tag,name,action) IF navPage.1 == tag %]
+<li>
+  <a href="[% regano.uri_for_action(action) %]" class="thisPage">[% name %]</a>
+</li>
+[% ELSE %]
+<li>
+  <a href="[% regano.uri_for_action(action) %]">[% name %]</a>
+</li>
+[% END ~%]
+
+[%# <!-- To be wrapped inside a list item in the sidebar. --> -%]
+<ul>
+  [% sidebar_link('overview','Overview','/registrar/index') %]
+  [% sidebar_link('contacts','Contacts','/registrar/account/contacts') %]
+</ul>
+
+[%# <!--  LocalWords:  navPage
+ --> ~%]
