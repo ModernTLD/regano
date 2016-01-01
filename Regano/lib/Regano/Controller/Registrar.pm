@@ -91,6 +91,11 @@ sub login :Local :Args(0) POST {
     my $password = $c->request->params->{password};
     my ( $type, $salt ) =
 	@{$c->model('DB::API')->user_get_salt_info($username)}{'xdigest', 'xsalt'};
+    unless (defined $type) {
+	$c->log->error('Login attempt with empty DB.');
+	$c->response->redirect($c->uri_for_action('/registrar/index'));
+	return 1;
+    }
     my $digest = Regano::PasswordHelper::hash_password($type, $salt, $password);
     my $dbsession = $c->model('DB::API')->user_login($username, $type, $salt, $digest);
 
