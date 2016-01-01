@@ -36,5 +36,47 @@
   [% END %]
 </table>
 
+<h2>Domains</h2>
+
+[% IF pending_domain.name %]
+<table style="margin: 1em 5em">
+  <tr>
+    <th>Name</th>
+    <td>[% pending_domain.name %]</td>
+  </tr>
+  <tr>
+    <th>Entered</th>
+    <td>[% pending_domain.start %]</td>
+  </tr>
+  <tr>
+    <th>Expires</th>
+    <td>[% pending_domain.expire %]</td>
+  </tr>
+</table>
+<div class="notify_notes">
+  You have a domain pending registration.  The domain "[%
+  pending_domain.name %]" is reserved until [% pending_domain.expire %].
+  You must verify your primary contact email address to register this
+  domain.  If you do not verify your primary contact email address before
+  [% pending_domain.expire %], the domain will again be available for
+  anyone to register.
+</div>
+[% END %]
+
+<table style="margin: 1em 5em">
+  <tr>
+    <th>Name</th><th>Registered</th>
+    <th>Expiration</th><th>Last Modified</th>
+  </tr>
+  [% FOREACH domain IN domains %]
+  <tr>
+    <td>[% domain.name %]</td>
+    <td>[% domain.registered %]</td>
+    <td>[% domain.expiration %]</td>
+    <td>[% domain.last_update %]</td>
+  </tr>
+  [% END %]
+</table>
+
 <!--  LocalWords:  regano InstanceName html FOREACH
  -->

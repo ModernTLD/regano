@@ -63,7 +63,10 @@ sub index :Path :Args(0) {
 	my $dbsession = $c->session->{dbsession};
 	$c->stash( template => 'registrar/overview.tt',
 		   user_info => $c->model('DB::API')->user_info($dbsession),
-		   contacts => $c->model('DB::API')->contact_list($dbsession) );
+		   contacts => $c->model('DB::API')->contact_list($dbsession),
+		   domains => $c->model('DB::API')->domain_list($dbsession),
+		   pending_domain =>
+			$c->model('DB::API')->domain_check_pending($dbsession) );
     } else {
 	# return login page
 	$c->stash( template => 'registrar/login.tt' );

@@ -55,6 +55,10 @@ my %METHODS = (
 				'dbsession', 'contact_id' ],
     'contact_verify_complete' => [ value => 'success', 'verify', 'key' ],
 
+    'domain_check_pending' => [ row => ['name', 'start', 'expire'],
+				'dbsession'],
+    'domain_list' => [ table => ['name', 'registered',
+				 'expiration', 'last_update'], 'dbsession' ],
     'domain_register' => [ value => 'status', 'dbsession', 'name' ],
 );
 
