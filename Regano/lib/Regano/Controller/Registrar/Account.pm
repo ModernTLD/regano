@@ -136,7 +136,35 @@ sub contacts_edit :Local :Args(0) POST {
 		push @{$c->session->{messages}}, ['verify_email', $id,
 						  $contacts{$id}{email}];
 	    }
+	} elsif ($field eq 'remove') {
+	    eval {
+		$c->model('DB::API')->contact_remove($dbsession, $id)
+	    };
+	    if ($@) {
+		push @{$c->session->{messages}}, ['dberr_remove', $id];
+	    } else {
+		push @{$c->session->{messages}}, ['remove_contact', $id];
+	    }
 	}
+    }
+
+    if ($params->{new_contact_name} =~ m/./
+	&& $params->{new_contact_email} =~ m/./) {
+	my $new_contact_id;
+	eval {
+	    $new_contact_id =
+		$c->model('DB::API')->contact_add($dbsession,
+						  $params->{new_contact_name},
+						  $params->{new_contact_email})
+	};
+	if ($@) {
+	    push @{$c->session->{messages}}, ['dberr_add'];
+	} else {
+	    push @{$c->session->{messages}}, ['add_contact', $new_contact_id];
+	}
+    } elsif ($params->{new_contact_name} =~ m/./
+	     || $params->{new_contact_email} =~ m/./) {
+	push @{$c->session->{messages}}, ['add_need_fields'];
     }
 
     $c->response->redirect($c->uri_for_action('/registrar/account/contacts'));

@@ -60,6 +60,26 @@
     A verification email will be sent to "[% message.2 %]" to verify contact ID
     [% message.1 %].
   </div>
+  [%   CASE "dberr_remove" -%]
+  <div class="notify_errors">
+    The database rejected the deletion of contact ID [% message.1 %].
+  </div>
+  [%   CASE "remove_contact" -%]
+  <div class="notify_success">
+    Contact ID [% message.1 %] removed.  Remaining contacts renumbered.
+  </div>
+  [%   CASE "dberr_add" -%]
+  <div class="notify_errors">
+    The database rejected adding the new contact.
+  </div>
+  [%   CASE "add_need_fields" -%]
+  <div class="notify_errors">
+    All fields in the "add contact" form must be filled to add a contact.
+  </div>
+  [%   CASE "add_contact" -%]
+  <div class="notify_success">
+    Contact ID [% message.1 %] added.
+  </div>
   [% END ~%]
   [% END ~%]
 </div>
@@ -119,8 +139,40 @@
 	</span>
       </td>
     </tr>
+    [%~ IF contact.id != user_info.contact_id %]
+    <tr>
+      <td colspan="2" style="text-align: center">
+	<input type="checkbox" name="contact_[% contact.id %]_remove" value=""
+	       id="contact-[% contact.id %]-remove">
+	<label for="contact-[% contact.id %]-remove">Delete this contact?</label>
+      </td>
+    </tr>
+    [% END ~%]
   </table>
   [% END %]
+  <table style="margin: 1em 5em">
+    <tr><th colspan="2">Add new contact</th></tr>
+    <tr>
+      <th>
+	<label for="new-contact-name">Name</label>
+      </th>
+      <td>
+	<input type="text" name="new_contact_name"
+	       value="" size="24" style="min-width: 10em"
+	       id="new-contact-name">
+      </td>
+    </tr>
+    <tr>
+      <th>
+	<label for="new-contact-email">Email Address</label>
+      </th>
+      <td>
+	<input type="text" name="new_contact_email"
+	       value="" size="24"
+	       id="new-contact-email">
+      </td>
+    </tr>
+  </table>
   <input type="submit" value="Submit">
   <input type="reset" value="Reset">
 </form>

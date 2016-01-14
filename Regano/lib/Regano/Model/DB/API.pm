@@ -47,6 +47,7 @@ my %METHODS = (
     'contact_list' => [ table => ['id', 'name', 'email', 'email_verified'],
 			'dbsession' ],
     'contact_add' => [ value => 'contact_id', 'dbsession', 'name', 'email' ],
+    'contact_remove' => [ nothing => undef, 'dbsession', 'contact_id' ],
     'contact_update_name' => [ nothing => undef,
 			       'dbsession', 'contact_id', 'name' ],
     'contact_update_email' => [ nothing => undef,
