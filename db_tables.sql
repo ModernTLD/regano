@@ -59,6 +59,7 @@ CREATE INDEX ON regano.contacts (owner_id);
 ALTER TABLE regano.users ADD CONSTRAINT users_contact_id_fkey
 	FOREIGN KEY (id, contact_id)
 		REFERENCES regano.contacts (owner_id, id)
+			ON UPDATE CASCADE
 			DEFERRABLE INITIALLY DEFERRED;
 
 -- Email verifications not yet completed
@@ -73,6 +74,7 @@ CREATE TABLE IF NOT EXISTS regano.contact_verifications (
 	UNIQUE (user_id, contact_id),
 	FOREIGN KEY (user_id, contact_id)
 		REFERENCES regano.contacts (owner_id, id)
+			ON UPDATE CASCADE
 );
 CREATE INDEX ON regano.contact_verifications (start);
 

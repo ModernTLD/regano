@@ -340,6 +340,35 @@ $$ LANGUAGE SQL VOLATILE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.contact_add (uuid, text, text)
 	OWNER TO regano;
 
+-- Remove a contact record for the current user.
+CREATE OR REPLACE FUNCTION regano_api.contact_remove
+	(session_id uuid, contact_id integer)
+	RETURNS void AS $$
+DECLARE
+    user_id	CONSTANT bigint NOT NULL
+		    := regano.session_user_id(session_id);
+    renumbering	CURSOR (user_id bigint)
+		    FOR SELECT id
+			    FROM regano.contacts
+			    WHERE owner_id = user_id
+			    ORDER BY id
+			    FOR UPDATE;
+    i		integer := 0;
+BEGIN
+    DELETE
+	FROM regano.contacts
+	WHERE owner_id = user_id AND id = contact_id;
+    FOR contact IN renumbering (user_id) LOOP
+	i := i + 1;
+	UPDATE regano.contacts
+	    SET id = i
+	    WHERE CURRENT OF renumbering;
+    END LOOP;
+END
+$$ LANGUAGE plpgsql VOLATILE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.contact_remove (uuid, integer)
+	OWNER TO regano;
+
 -- Update the name field of a contact record.
 CREATE OR REPLACE FUNCTION regano_api.contact_update_name
 	(session_id uuid, contact_id integer, value text)

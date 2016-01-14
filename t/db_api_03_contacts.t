@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 2 + 2 + 2 + 2 + 2 + 1 + 2 + 1 + 1;
+use Test::More tests => 2 + 3 + 2 + 2 + 2 + 1 + 1 + 2 + 1 + 1;
 
 use DBI;
 use strict;
@@ -82,6 +82,7 @@ sub verify_contact ($$) {
 {
   my %contacts;
   my $contact_add_st = $dbh->prepare(q{SELECT regano_api.contact_add(?, ?, ?)});
+  my $contact_remove_st = $dbh->prepare(q{SELECT regano_api.contact_remove(?, ?)});
   my $contact_get_st = $dbh->prepare
     (q{SELECT id FROM regano_api.contact_list(?) WHERE email = ?});
   my $contact_list_st = $dbh->prepare
@@ -113,6 +114,13 @@ sub verify_contact ($$) {
 			     $SESSIONS{test1},
 			     'Test User Public 2', 'spamtrap2@example.com');
   like($contacts{test1p2}, qr/\d+/, q{Add another contact for 'test1'});
+  ($contacts{test1p3}) = $dbh->selectrow_array($contact_get_st, {},
+					       $SESSIONS{test1},
+					       'spamtrap3@example.com')
+    || $dbh->selectrow_array($contact_add_st, {},
+			     $SESSIONS{test1},
+			     'Test User Public 3', 'spamtrap3@example.com');
+  like($contacts{test1p3}, qr/\d+/, q{Add another contact for 'test1'});
 
   subtest q{Verify primary contact for 'test1'} => sub {
     verify_contact $SESSIONS{test1}, $contacts{test1};
@@ -147,6 +155,10 @@ sub verify_contact ($$) {
   $dbh->selectrow_array($contact_update_name_st, {},
 			$SESSIONS{test1}, $contacts{test1}, 'Test User 1A');
   pass(qq{Change name for contact $contacts{test1}});
+
+  $dbh->selectrow_array($contact_remove_st, {},
+			$SESSIONS{test1}, $contacts{test1p3});
+  pass(qq{Delete contact $contacts{test1p3}});
 
   is_deeply($dbh->selectall_arrayref($contact_list_st, {}, $SESSIONS{test1}),
 	    [['Test User 1A', 'test1@example.com', $TRUE],
