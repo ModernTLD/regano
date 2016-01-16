@@ -56,10 +56,10 @@
 <div class="notify_notes">
   You have a domain pending registration.  The domain "[%
   pending_domain.name %]" is reserved until [% pending_domain.expire %].
-  You must verify your primary contact email address to register this
-  domain.  If you do not verify your primary contact email address before
-  [% pending_domain.expire %], the domain will again be available for
-  anyone to register.
+  You must verify or reverify your primary contact email address to
+  register this domain.  If you do not verify or reverify your primary
+  contact email address before [% pending_domain.expire %], the domain will
+  again be available for anyone to register.
 </div>
 [% END %]
 
@@ -78,5 +78,5 @@
   [% END %]
 </table>
 
-<!--  LocalWords:  regano InstanceName html FOREACH
+<!--  LocalWords:  regano InstanceName html FOREACH reverify
  -->
