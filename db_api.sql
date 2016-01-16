@@ -529,7 +529,11 @@ ALTER FUNCTION regano_api.domain_check_pending (uuid)
 CREATE OR REPLACE FUNCTION regano_api.domain_list
 	(uuid)
 	RETURNS SETOF regano.domain AS $$
-SELECT domain_name||domain_tail AS name, registered, expiration, last_update
+SELECT domain_name||domain_tail AS name, registered, expiration, last_update,
+	CASE WHEN now() < expiration
+	     THEN 'REGISTERED'::regano.domain_status
+	     ELSE 'EXPIRED'::regano.domain_status
+	END AS status
     FROM regano.domains WHERE owner_id = regano.session_user_id($1)
 $$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_list (uuid)

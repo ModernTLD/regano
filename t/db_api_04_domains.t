@@ -176,7 +176,7 @@ sub check_status_and_reason ($$) {
   check_status 'test.test.', 'REGISTERED';
 
   is_deeply($dbh->selectall_arrayref($domain_list_st, {}, $SESSIONS{test1}),
-	    [['test.test.', $registered, $expires, $now]],
+	    [['test.test.', $registered, $expires, $now, 'REGISTERED']],
 	    q{List domains for 'test1'});
 
   $expire1 = $dbh->selectrow_array($get_expiration_st, {}, 'test-pend');

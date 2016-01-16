@@ -59,7 +59,8 @@ my %METHODS = (
     'domain_check_pending' => [ row => ['name', 'start', 'expire'],
 				'dbsession'],
     'domain_list' => [ table => ['name', 'registered',
-				 'expiration', 'last_update'], 'dbsession' ],
+				 'expiration', 'last_update', 'status'],
+		       'dbsession' ],
     'domain_register' => [ value => 'status', 'dbsession', 'name' ],
 );
 

@@ -247,5 +247,7 @@ CREATE TYPE regano.domain AS (
 	name		text,
 	registered	timestamp with time zone,
 	expiration	timestamp with time zone,
-	last_update	timestamp with time zone
+	last_update	timestamp with time zone,
+	-- status will be either REGISTERED or EXPIRED
+	status		regano.domain_status
 );

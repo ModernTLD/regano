@@ -65,12 +65,19 @@
 
 <table style="margin: 1em 5em">
   <tr>
-    <th>Name</th><th>Registered</th>
-    <th>Expiration</th><th>Last Modified</th>
+    <th>Name</th>
+    <th>Status</th>
+    <th>Registered</th>
+    <th>Expiration</th>
+    <th>Last Modified</th>
   </tr>
   [% FOREACH domain IN domains %]
   <tr>
     <td>[% domain.name %]</td>
+    <td [%= SWITCH domain.status ~%]
+	[%~  CASE "REGISTERED"	~%] style="color: green"
+	[%~  CASE "EXPIRED"	~%] style="color: red"
+	[%~ END %]>[% domain.status %]</td>
     <td>[% domain.registered %]</td>
     <td>[% domain.expiration %]</td>
     <td>[% domain.last_update %]</td>
