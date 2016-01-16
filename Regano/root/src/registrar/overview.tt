@@ -9,6 +9,72 @@
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
 <h1>[% regano.config.InstanceName | html %] registry &mdash; [% session.user %]</h1>
 
+[% IF status -%]
+<div style="margin: 3m; text-align: center">
+  [% FOREACH message IN status -%]
+  [% SWITCH message.0 -%]
+  [%   CASE "dberr_password" -%]
+  <div class="notify_errors">
+    The database rejected changing your password.  This should not happen.
+  </div>
+  [%   CASE "change_password" -%]
+  <div class="notify_success">
+    Your password has been changed.
+  </div>
+  [%   CASE "change_password_fail" -%]
+  <div class="notify_errors">
+    Your password was not changed.  Are you sure that you correctly entered
+    your current password?
+  </div>
+  [%   CASE "change_password_mismatch" -%]
+  <div class="notify_errors">
+    The new passwords given did not match.
+  </div>
+  [% END ~%]
+  [% END ~%]
+</div>
+[% END ~%]
+
+<h2>Change Password</h2>
+
+<form action="[% regano.uri_for_action('/registrar/account/change_password') %]"
+      method="POST">
+  <table style="margin: 1em 5em">
+    <tr>
+      <th style="text-align: right">
+	<label for="password-current">Current Password</label>
+      </th>
+      <td>
+	<input type="password" name="password_current" value=""
+	       id="password-current">
+      </td>
+    </tr>
+    <tr>
+      <th style="text-align: right">
+	<label for="password-new1">New password</label>
+      </th>
+      <td>
+	<input type="password" name="password_new1" value=""
+	       id="password-new1">
+      </td>
+    </tr>
+    <tr>
+      <th style="text-align: right">
+	<label for="password-new2">Confirm new password</label>
+      </th>
+      <td>
+	<input type="password" name="password_new2" value=""
+	       id="password-new2">
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" style="text-align: right">
+	<input type="submit" value="Change Password">
+      </td>
+    </tr>
+  </table>
+</form>
+
 <h2>Contacts &mdash;
   <a href="[% regano.uri_for_action('/registrar/account/contacts')
 	    %]">[edit]</a></h2>
@@ -85,5 +151,5 @@
   [% END %]
 </table>
 
-<!--  LocalWords:  regano InstanceName html FOREACH reverify
+<!--  LocalWords:  regano InstanceName html FOREACH reverify dberr
  -->

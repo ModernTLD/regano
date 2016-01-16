@@ -66,7 +66,9 @@ sub index :Path :Args(0) {
 		   contacts => $c->model('DB::API')->contact_list($dbsession),
 		   domains => $c->model('DB::API')->domain_list($dbsession),
 		   pending_domain =>
-			$c->model('DB::API')->domain_check_pending($dbsession) );
+			$c->model('DB::API')->domain_check_pending($dbsession),
+		   status => $c->session->{messages} );
+	delete $c->session->{messages};
     } else {
 	# return login page
 	$c->stash( template => 'registrar/login.tt' );

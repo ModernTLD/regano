@@ -2,6 +2,8 @@ package Regano::Controller::Registrar::Account;
 use Moose;
 use namespace::autoclean;
 
+BEGIN { require Regano::PasswordHelper; }
+
 BEGIN { extends 'Catalyst::Controller'; }
 
 =head1 NAME
@@ -36,6 +38,59 @@ sub auto :Private {
 
 sub index :Path :Args(0) {
     my ( $self, $c ) = @_;
+
+    $c->response->redirect($c->uri_for_action('/registrar/index'));
+}
+
+=head2 change_password
+
+Change the password for the current user.
+
+=cut
+
+sub change_password :Local :Args(0) POST {
+    my ( $self, $c ) = @_;
+
+    my $dbsession = $c->session->{dbsession};
+    my $current_password = $c->request->params->{password_current};
+    my $new_password = $c->request->params->{password_new1};
+    my $new_password_2 = $c->request->params->{password_new2};
+
+    my ( $old_type, $old_salt ) =
+	@{$c->model('DB::API')->user_get_salt_info
+	      ($c->stash->{session}{user})}{'xdigest', 'xsalt'};
+    my $old_digest = Regano::PasswordHelper::hash_password($old_type, $old_salt,
+							   $current_password);
+
+    my $type = $c->controller('Registrar')->AuthFrontendDigest;
+    my $salt = Regano::PasswordHelper::make_salt
+	($c->controller('Registrar')->AuthFrontendSaltLength);
+    my $digest = Regano::PasswordHelper::hash_password($type, $salt,
+						       $new_password);
+
+    my $success;
+
+    if ($new_password eq '') {
+	# do nothing
+    } elsif ($new_password ne $new_password_2) {
+	push @{$c->session->{messages}}, ['change_password_mismatch'];
+    } else {
+	eval {
+	    $success =
+		$c->model('DB::API')->user_change_password($dbsession,
+							   $old_type,
+							   $old_salt,
+							   $old_digest,
+							   $type, $salt, $digest);
+	};
+	if ($@) {
+	    push @{$c->session->{messages}}, ['dberr_password'];
+	} elsif ($success) {
+	    push @{$c->session->{messages}}, ['change_password'];
+	} else {
+	    push @{$c->session->{messages}}, ['change_password_fail'];
+	}
+    }
 
     $c->response->redirect($c->uri_for_action('/registrar/index'));
 }
