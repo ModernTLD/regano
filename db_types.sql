@@ -102,6 +102,7 @@ CREATE TYPE regano.dns_record_type AS ENUM (
 	'SPF',		-- RFC 4408: Sender Policy Framework record
 	'SRV',		-- RFC 2782: service location
 	-- TODO: SSHFP? (RFC 4255)
+	-- TODO: TLSA? (RFC 6698)
 	'TXT'		-- RFC 1035: general descriptive text
 );
 
