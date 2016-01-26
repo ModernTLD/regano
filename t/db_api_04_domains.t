@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 5*2 + 2 + 4 + 8;
+use Test::More tests => 6*2 + 2 + 4 + 8;
 
 use DBI;
 use strict;
@@ -131,6 +131,7 @@ sub check_status_and_reason ($$) {
   check_status_and_reason 'test.example.', 'ELSEWHERE';
   check_status_and_reason 'test.test.', 'AVAILABLE';
   check_status_and_reason '.test.', 'BAILIWICK';
+  check_status_and_reason 'test.', 'BAILIWICK';
 
   $dbh->begin_work;
   ($registered) = $dbh->selectrow_array(q{SELECT now()});
