@@ -35,6 +35,11 @@ DECLARE
     primary_label	regano.dns_label;
     tail		regano.dns_fqdn;
 BEGIN
+    PERFORM * FROM regano.bailiwicks WHERE lower(domain_tail) = lower(name);
+    IF FOUND THEN
+	RETURN 'BAILIWICK';
+    END IF;
+
     primary_label := substring(name from '^([^.]+)[.]');
     tail := substring(name from '^[^.]+([.].+[.])$');
 

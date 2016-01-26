@@ -198,12 +198,14 @@ ALTER TYPE regano.dns_RR_SRV		OWNER TO regano;
 
 
 --
--- Any domain is in one of 6 states:
+-- Any domain is in one of 7 states:
 --
 --  - RESERVED
 --	Not available for registration.
 --  - ELSEWHERE
 --	Not in a TLD managed by this server.
+--  - BAILIWICK
+--	Is itself a TLD managed by this server.
 --  - AVAILABLE
 --	May be registered.
 --  - PENDING
@@ -216,6 +218,7 @@ ALTER TYPE regano.dns_RR_SRV		OWNER TO regano;
 CREATE TYPE regano.domain_status AS ENUM (
 	'RESERVED',
 	'ELSEWHERE',
+	'BAILIWICK',
 	'AVAILABLE',
 	'PENDING',
 	'REGISTERED',

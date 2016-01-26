@@ -35,6 +35,8 @@
   <tr><td colspan="2">Reserved: [% domain.reason | html %]</td></tr>
   [%   CASE 'ELSEWHERE' %]
   <tr><td colspan="2">Not known to this system</td></tr>
+  [%   CASE 'BAILIWICK' %]
+  <tr><td colspan="2">One of the bailiwicks in this system</td></tr>
   [%   CASE 'AVAILABLE' %]
   <tr><td colspan="2">Available for registration</td></tr>
   [%   CASE 'PENDING' %]
