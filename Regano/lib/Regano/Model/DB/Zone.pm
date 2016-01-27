@@ -42,7 +42,11 @@ sub records_for_domain {
     my $get_records_st = $dbh->prepare_cached
 	(q{SELECT seq_no, name, class, type, EXTRACT(EPOCH FROM ttl),
 		  data_name, data_text, data_RR_A, data_RR_AAAA,
-		  (data_RR_SOA).*,
+		  (data_RR_SOA).zone, (data_RR_SOA).mbox,
+		  EXTRACT(EPOCH FROM (data_RR_SOA).refresh),
+		  EXTRACT(EPOCH FROM (data_RR_SOA).retry),
+		  EXTRACT(EPOCH FROM (data_RR_SOA).expire),
+		  EXTRACT(EPOCH FROM (data_RR_SOA).minimum),
 		  (data_RR_DS).*,
 		  (data_RR_MX).*,
 		  (data_RR_SRV).*
