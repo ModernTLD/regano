@@ -9,6 +9,11 @@
     <title>[% template.title or "Regano" %]</title>
     <link rel="stylesheet" href="/static/style/werc.css" type="text/css"
 	  media="screen, handheld" title="default">
+    [%~ IF template.style %]
+    <style type="text/css">
+      [% template.style %]
+    </style>
+    [% END %]
   </head>
   <body>
     <div id="header">
