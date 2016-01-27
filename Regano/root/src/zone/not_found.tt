@@ -1,0 +1,12 @@
+[%# <!-- This -*- HTML -*- template is part of Regano.
+	 Regano is free software and may be redistributed and/or modified
+	 under the same terms as Perl itself. --> ~%]
+
+[% META
+   title = 'Zone Not Found'
+ %]
+[%~ navPage = [ 'zone' ] ~%]
+[%# <!-- To be wrapped inside "main-copy" div. --> -%]
+<h1>404 Not Found</h1>
+
+<p>The zone "[% zone.name %]" is not known to this instance.</p>

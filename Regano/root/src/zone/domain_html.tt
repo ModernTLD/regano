@@ -1,0 +1,93 @@
+[%# <!-- This -*- HTML -*- template is part of Regano.
+	 Regano is free software and may be redistributed and/or modified
+	 under the same terms as Perl itself. --> ~%]
+
+[% META
+   title = 'Regano Zone Records'
+   style = "body { z-index: 1; }
+.record-data { position: relative; top: 0; }
+.record-data > table {
+    background-color: white;
+    display: none;
+    position: absolute;
+    top: 1em;
+    z-index: 2;
+}
+.record-data:hover > table { display: block }
+"
+ %]
+[%~ navPage = [ 'zone' ] ~%]
+[%# <!-- To be wrapped inside "main-copy" div. --> -%]
+<h1>Records for [% zone.name %]</h1>
+
+<table style="margin: 1em 5em">
+  <tr>
+    <th>Name</th>
+    <th>TTL</th>
+    <th>Class</th>
+    <th>Type</th>
+    <th></th>
+  </tr>
+  [% FOREACH record IN zone.records %]
+  <tr>
+    <td>[% record.name %]</td>
+    <td>[% record.ttl %]</td>
+    <td>[% record.class %]</td>
+    <td>[% record.type %]</td>
+    <td><div class="record-data">
+      [% SWITCH record.type %]
+      [%   CASE ["A", "AAAA"] %]
+      [% record.data.address %]
+      [%   CASE ["CNAME", "DNAME", "NS", "PTR"] %]
+      [% record.data.name %]
+      [%   CASE ["SPF", "TXT"] %]
+      [% record.data.text %]
+      [%   CASE "DS" %]
+      <table>
+	<tr><th>Key Tag</th><td>[% record.data.key_tag %]</td></tr>
+	<tr><th>Algorithm</th><td>[% record.data.algorithm %]</td></tr>
+	<tr><th>Digest Type</th><td>[% record.data.digest_type %]</td></tr>
+	<tr><th>Digest</th><td>[% record.data.digest %]</td></tr>
+      </table>
+      ([% record.data.key_tag %] [% record.data.algorithm %]
+       [% record.data.digest_type %] [% record.data.digest %])
+      [%   CASE "MX" %]
+      <table>
+	<tr><th>Preference</th><td>[% record.data.preference %]</td></tr>
+	<tr><th>Exchange</th><td>[% record.data.exchange %]</td></tr>
+      </table>
+      ([% record.data.preference %] [% record.data.exchange %])
+      [%   CASE "SRV" %]
+      <table>
+	<tr><th>Priority</th><td>[% record.data.priority %]</td></tr>
+	<tr><th>Weight</th><td>[% record.data.weight %]</td></tr>
+	<tr><th>Port</th><td>[% record.data.port %]</td></tr>
+	<tr><th>Target</th><td>[% record.data.target %]</td></tr>
+      </table>
+      ([% record.data.priority %] [% record.data.weight %]
+       [% record.data.port %] [% record.data.target %])
+      [%   CASE "SOA" %]
+      <table>
+	<tr><th>Zone</th><td>[% record.data.zone %]</td></tr>
+	<tr><th>Mailbox</th><td>[% record.data.mbox %]</td></tr>
+	<tr><th>Serial</th><td>[% record.data.serial %]</td></tr>
+	<tr><th>Refresh</th><td>[% record.data.refresh %]</td></tr>
+	<tr><th>Retry</th><td>[% record.data.retry %]</td></tr>
+	<tr><th>Expire</th><td>[% record.data.expire %]</td></tr>
+	<tr><th>Minimum TTL</th><td>[% record.data.minimum %]</td></tr>
+      </table>
+      ([% record.data.zone %] [% record.data.mbox %] [% record.data.serial %]
+       [% record.data.refresh %] [% record.data.retry %]
+       [% record.data.expire %] [% record.data.minimum %])
+      [%   CASE DEFAULT %]
+      BUG: unknown record type [% record.type %]
+      [% END %]
+    </div></td>
+  </tr>
+  [% END %]
+</table>
+
+<!--  LocalWords:  Regano ttl FOREACH SOA AAAA CNAME DNAME PTR TXT DS MX SRV
+ -->
+<!--  LocalWords:  mbox
+ -->
