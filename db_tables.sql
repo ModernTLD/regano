@@ -128,6 +128,8 @@ CREATE TABLE IF NOT EXISTS regano.domains (
 );
 CREATE UNIQUE INDEX domains_domain_name_domain_tail_lower_case_key
 	ON regano.domains (lower(domain_name), lower(domain_tail));
+CREATE INDEX domains_external_name_lower_case_idx
+	ON regano.domains (lower(domain_name||domain_tail));
 
 -- DNS records hosted by this instance
 CREATE TABLE IF NOT EXISTS regano.domain_records (
