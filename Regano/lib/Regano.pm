@@ -56,6 +56,7 @@ __PACKAGE__->config(
 );
 __PACKAGE__->config(
     # Configure the view
+    'default_view' => 'HTML',
     'View::HTML' => {
 	# Set the location for TT files
 	INCLUDE_PATH => [
@@ -63,6 +64,12 @@ __PACKAGE__->config(
 	],
 	# Use a standard wrapper
 	WRAPPER => [ 'wrapper.tt' ],
+    },
+    'View::Raw' => {
+	# Set the location for TT files
+	INCLUDE_PATH => [
+	    __PACKAGE__->path_to('root', 'src'),
+	],
     },
 );
 

@@ -1,0 +1,36 @@
+[%# This -*- Text -*- template is part of Regano.
+    Regano is free software and may be redistributed and/or modified
+    under the same terms as Perl itself. ~%]
+
+$ORIGIN [% zone.name %]
+
+[% FOREACH record IN zone.records -%]
+[% record.name %]	[% record.ttl %]	[% record.class -%]
+	[% record.type %]
+[%= SWITCH record.type ~%]
+[%~   CASE ["A", "AAAA"] -%]
+	[% record.data.address %]
+[%~   CASE ["CNAME", "DNAME", "NS", "PTR"] -%]
+	[% record.data.name %]
+[%~   CASE ["SPF", "TXT"] -%]
+	"[% record.data.text %]"
+[%~   CASE "DS" -%]
+	([% record.data.key_tag %] [% record.data.algorithm =%]
+	 [% record.data.digest_type %] [% record.data.digest %])
+[%~   CASE "MX" -%]
+	([% record.data.preference %] [% record.data.exchange %])
+[%~   CASE "SRV" -%]
+	([% record.data.priority %] [% record.data.weight =%]
+	 [% record.data.port %] [% record.data.target %])
+[%~   CASE "SOA" -%]
+	([% record.data.zone %] [% record.data.mbox =%]
+	 [% record.data.serial =%]
+	 [% record.data.refresh %] [% record.data.retry =%]
+	 [% record.data.expire %] [% record.data.minimum %])
+[%~   CASE DEFAULT %]
+; BUG: unknown record type [% record.type %]
+[%~ END %]
+[% END ~%]
+
+[%# LocalWords:  Regano FOREACH ttl SOA AAAA CNAME DNAME PTR TXT DS MX SRV mbox
+ -%]

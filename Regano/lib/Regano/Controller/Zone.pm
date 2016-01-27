@@ -39,11 +39,23 @@ sub zone :Path :Args(1) {
     return $c->response->redirect($c->request->uri . '.')
 	unless $zone_name =~ m/\.$/;
 
+    # TODO: process this according to RFC2068
+    my $format = $c->request->headers->header('Accept');
+    if ($format =~ m{text/dns}) {
+	$format = 'zone';
+	$c->stash( current_view => 'Raw' );
+	$c->response->content_type('text/dns');
+    } else {
+	$format = 'html';
+    }
+
     my $type = $c->model('DB::API')->domain_status($zone_name);
+
+    $c->response->headers->push_header( Vary => 'Accept' );
 
     if ($type eq 'REGISTERED') {
 	# return records for single domain
-	$c->stash( template => 'zone/domain_html.tt',
+	$c->stash( template => 'zone/domain_'.$format.'.tt',
 		   zone => { name => $zone_name,
 			     records => $c->model('DB::Zone')
 				 ->records_for_domain($zone_name) } );
@@ -53,7 +65,8 @@ sub zone :Path :Args(1) {
     } else {
 	$c->response->status(404);
 	$c->stash( template => 'zone/not_found.tt',
-		   zone => { name => $zone_name } );
+		   zone => { name => $zone_name },
+		   current_view => 'HTML' );
     }
 }
 
