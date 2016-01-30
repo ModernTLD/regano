@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 8 + 2;
+use Test::More tests => 8 + 4;
 
 use DBI;
 use strict;
@@ -157,10 +157,11 @@ sub translate_zone ($@) {
     (q{SELECT seq_no, class, type, ttl, name, data_name, data_text, }.
      join(', ', map {"data_RR_$_"} qw/SOA A AAAA DS MX SRV/).
      q{ FROM regano.domain_records WHERE domain_id = ?});
-  my ($domain_id) = $dbh->selectrow_array
+  my $get_domain_id_st = $dbh->prepare
     (q{SELECT id FROM regano.domains
-	 WHERE domain_name = 'test' AND domain_tail = '.test.'});
+	 WHERE domain_name = ? AND domain_tail = '.test.'});
 
+  my ($domain_id) = $dbh->selectrow_array($get_domain_id_st, {}, 'test');
   $dbh->selectrow_array(q{SELECT regano_api.zone_clear(?,?)}, {},
 			$SESSIONS{test1}, 'test.test.');
   update_zone $SESSIONS{test1}, 'test.test.';
@@ -192,6 +193,32 @@ sub translate_zone ($@) {
   is_deeply($dbh->selectall_arrayref($get_domain_records_st, {}, $domain_id),
 	    [@ZONE_OUT],
 	    q{Set records for 'test.test.'});
+
+  ($domain_id) = $dbh->selectrow_array($get_domain_id_st, {}, 'test-inline');
+  @ZONE_IN =
+    ([A => undef, '@', '1.2.3.7'],
+     [AAAA => undef, '@', '::8'],
+     [name => undef, 'dsub', 'DNAME', 'test-delegated.test.'],
+    );
+  @ZONE_OUT = translate_zone 'test-inline.test.', @ZONE_IN;
+
+  update_zone $SESSIONS{test1}, 'test-inline.test.', @ZONE_IN;
+  is_deeply($dbh->selectall_arrayref($get_domain_records_st, {}, $domain_id),
+	    [@ZONE_OUT],
+	    q{Set records for 'test-inline.test.'});
+
+  ($domain_id) = $dbh->selectrow_array($get_domain_id_st, {}, 'test-delegated');
+  @ZONE_IN =
+    ([name => undef, '@', 'NS', 'ns'],
+     [A => undef, 'ns', '1.2.3.9'],
+     [AAAA => undef, 'ns', '::a'],
+    );
+  @ZONE_OUT = translate_zone 'test-delegated.test.', @ZONE_IN;
+
+  update_zone $SESSIONS{test1}, 'test-delegated.test.', @ZONE_IN;
+  is_deeply($dbh->selectall_arrayref($get_domain_records_st, {}, $domain_id),
+	    [@ZONE_OUT],
+	    q{Set records for 'test-delegated.test.'});
 }
 
 ##

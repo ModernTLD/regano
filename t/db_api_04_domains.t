@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 6*2 + 2 + 4 + 8;
+use Test::More tests => 6*2 + 2 + 4 + 10;
 
 use DBI;
 use strict;
@@ -172,13 +172,21 @@ sub check_status_and_reason ($$) {
     (q{SELECT now(), now() + regano.config_get('domain/term')});
   $dbh->selectrow_array($domain_renew_st, {},
 			$SESSIONS{test1}, 'test.test.');
+  $dbh->selectrow_array($domain_register_st, {},
+		       $SESSIONS{test1}, 'test-inline.test.');
+  $dbh->selectrow_array($domain_register_st, {},
+		       $SESSIONS{test1}, 'test-delegated.test.');
   $dbh->commit;
   $expire2 = $dbh->selectrow_array($get_expiration_st, {}, 'test');
   isnt($expire1, $expire2, qq{Renew domain 'test.test.'});
   check_status 'test.test.', 'REGISTERED';
+  check_status 'test-inline.test.', 'REGISTERED';
+  check_status 'test-delegated.test.', 'REGISTERED';
 
   is_deeply($dbh->selectall_arrayref($domain_list_st, {}, $SESSIONS{test1}),
-	    [['test.test.', $registered, $expires, $now, 'REGISTERED']],
+	    [['test.test.', $registered, $expires, $now, 'REGISTERED'],
+	     ['test-inline.test.', $now, $expires, $now, 'REGISTERED'],
+	     ['test-delegated.test.', $now, $expires, $now, 'REGISTERED']],
 	    q{List domains for 'test1'});
 
   $expire1 = $dbh->selectrow_array($get_expiration_st, {}, 'test-pend');

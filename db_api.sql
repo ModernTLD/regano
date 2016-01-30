@@ -99,6 +99,40 @@ $$ LANGUAGE SQL STABLE STRICT SECURITY DEFINER;
 ALTER FUNCTION regano_api.domain_reservation_reason (regano.dns_fqdn)
 	OWNER TO regano;
 
+-- Inquire how a domain is handled.
+CREATE OR REPLACE FUNCTION regano_api.domain_mode
+	(regano.dns_fqdn)
+	RETURNS regano.domain_mode AS $$
+DECLARE
+    name		ALIAS FOR $1;
+
+    active_domain	regano.domains%ROWTYPE;
+BEGIN
+    SELECT * INTO active_domain
+	FROM regano.domains
+	WHERE lower(name) = lower(domain_name||domain_tail);
+    IF NOT FOUND OR now() > active_domain.expiration THEN
+	RETURN NULL;
+    END IF;
+
+    PERFORM * FROM regano.domain_records
+	WHERE domain_id = active_domain.id AND seq_no = 0 AND type = 'SOA';
+    IF FOUND THEN
+	RETURN 'HOSTED';
+    END IF;
+
+    PERFORM * FROM regano.domain_records r
+	WHERE domain_id = active_domain.id AND r.name = '@' AND type = 'NS';
+    IF FOUND THEN
+	RETURN 'DELEGATED';
+    END IF;
+
+    RETURN 'INLINE';
+END;
+$$ LANGUAGE plpgsql STABLE STRICT SECURITY DEFINER;
+ALTER FUNCTION regano_api.domain_mode (regano.dns_fqdn)
+	OWNER TO regano;
+
 
 -- Create a new user account.
 CREATE OR REPLACE FUNCTION regano_api.user_register
