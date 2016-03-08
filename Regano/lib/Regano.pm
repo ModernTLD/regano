@@ -78,6 +78,22 @@ sub generate_session_id {
     return unpack("H*", makerandom_octet( Length => 16, Strength => 0 ));
 }
 
+# Expand multi-module config blocks
+sub finalize_config {
+    my $c = shift;
+
+    my @expand_configs = grep {m/,\s*/} keys %{$c->config};
+    foreach my $base (@expand_configs) {
+	my $fragment = $c->config->{$base};
+	my ($prefix) = $base =~ m/(.*?::)/;
+	$base =~ s/^$prefix//;
+	$c->config->{$prefix.$_} = { %$fragment }
+	    for split /,\s*/, $base;
+    }
+
+    $c->next::method( @_ );
+}
+
 # Start the application
 __PACKAGE__->setup();
 
