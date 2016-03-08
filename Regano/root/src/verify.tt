@@ -1,0 +1,28 @@
+[%# <!-- This -*- HTML -*- template is part of Regano.
+	 Regano is free software and may be redistributed and/or modified
+	 under the same terms as Perl itself. --> ~%]
+
+[% META
+   title = 'Verification'
+ %]
+[%# <!-- To be wrapped inside "main-copy" div. --> -%]
+<h1>Contact Verification</h1>
+
+[% IF verification_result %]
+<div class="notify_success">
+  Contact verified successfully.  You may now <a href="[%
+  regano.uri_for_action('/registrar/index') %]">return</a> to your account
+  overview and register domains.
+</div>
+[% ELSE %]
+<div class="notify_errors">
+  Contact verification failed.  The URL may be invalid, stale, or this
+  verification may have already been successfully completed.
+  Please <a href="[% regano.uri_for_action('/registrar/index')
+  %]">return</a> to your account overview and check the status of your
+  contacts.
+</div>
+[% END %]
+
+<!--  LocalWords:  Regano
+ -->
