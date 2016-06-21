@@ -457,7 +457,8 @@ BEGIN
 
     -- cancel any in-progress address verification
     DELETE FROM regano.contact_verifications
-	WHERE contact_verifications.contact_id = contact.id;
+	WHERE contact_verifications.user_id = session.user_id
+	  AND contact_verifications.contact_id = contact.id;
     -- change the stored email address
     UPDATE regano.contacts
 	SET email_verified = FALSE, email = value
