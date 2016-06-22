@@ -128,13 +128,13 @@ sub verify_emails () {
 	   }
        }
        verify_emails();
-       $dbh->ping or redo DBHLOOP;
        { # adapted from example in perlfunc
 	   my ($rin, $win, $ein, $rout, $wout, $eout, $bits);
 	   $bits = ''; vec($bits, $dbh->{pg_socket},1) = 1;
 	   $rin = $ein = $bits; $win = '';
 	   select($rout=$rin, $wout=$win, $eout=$ein, undef);
        }
+       $dbh->ping or redo DBHLOOP;
        redo NOTIFYLOOP;
      }
 }
