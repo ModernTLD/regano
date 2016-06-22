@@ -74,7 +74,8 @@ sub send_verify ($$$$) {
 			  FROM regano.contact_verifications v
 			      JOIN regano.contacts c
 				  ON v.user_id = c.owner_id
-				    AND v.contact_id = c.id});
+				    AND v.contact_id = c.id
+			  WHERE NOT v.email_sent});
 	       my $update_st = $dbh->prepare_cached
 		   (q{UPDATE regano.contact_verifications
 			  SET email_sent = TRUE
