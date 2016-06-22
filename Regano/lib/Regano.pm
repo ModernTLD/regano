@@ -32,6 +32,7 @@ extends 'Catalyst';
 
 our $VERSION = '0.01';
 
+has 'InstanceBase' => ( is => 'ro', isa => 'Str' );
 has 'InstanceName' => ( is => 'ro', isa => 'Str' );
 has 'InstanceDescription' => ( is => 'ro', isa => 'Str' );
 
