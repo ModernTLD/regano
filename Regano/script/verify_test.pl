@@ -61,6 +61,37 @@ sub send_verify ($$$$) {
     return 1;
 }
 
+sub process_verifications ($) {
+    my $dbh = shift;
+    my $count = 0;
+    my $list_st = $dbh->prepare_cached
+	(q{SELECT v.id, v.key, c.email, c.name
+	       FROM regano.contact_verifications v
+		   JOIN regano.contacts c
+		       ON v.user_id = c.owner_id AND v.contact_id = c.id
+	       WHERE NOT v.email_sent});
+    my $update_st = $dbh->prepare_cached
+	(q{UPDATE regano.contact_verifications
+	       SET email_sent = TRUE
+	       WHERE id = ? AND key = ?});
+    my ($vid, $vkey, $email, $name);
+
+    $dbh->begin_work;
+
+    $list_st->execute;
+    $list_st->bind_columns(\ ($vid, $vkey, $email, $name));
+
+    while ($list_st->fetch) {
+	$update_st->execute($vid, $vkey)
+	    if send_verify($email, $name, $vid, $vkey);
+	$count++;
+    }
+
+    $dbh->commit;
+
+    return $count;
+}
+
 sub verify_emails () {
     my $mech = WWW::Mechanize->new();
 
@@ -87,31 +118,13 @@ sub verify_emails () {
      $dbh->ping() or die "bad DB handle";
 
      $dbh->do('LISTEN regano__contact_verifications');
+     process_verifications($dbh);
 
    NOTIFYLOOP: {
        while (my $notify = $dbh->pg_notifies) {
 	   my ($eventname, $pid, $payload) = @$notify;
 	   if ($eventname eq 'regano__contact_verifications') {
-	       $dbh->begin_work;
-	       my $list_st = $dbh->prepare_cached
-		   (q{SELECT v.id, v.key, c.email, c.name
-			  FROM regano.contact_verifications v
-			      JOIN regano.contacts c
-				  ON v.user_id = c.owner_id
-				    AND v.contact_id = c.id
-			  WHERE NOT v.email_sent});
-	       my $update_st = $dbh->prepare_cached
-		   (q{UPDATE regano.contact_verifications
-			  SET email_sent = TRUE
-			  WHERE id = ? AND key = ?});
-	       $list_st->execute;
-	       my ($vid, $vkey, $email, $name);
-	       $list_st->bind_columns(\ ($vid, $vkey, $email, $name));
-	       while ($list_st->fetch) {
-		   $update_st->execute($vid, $vkey)
-		       if send_verify($email, $name, $vid, $vkey);
-	       }
-	       $dbh->commit;
+	       process_verifications($dbh);
 	   }
        }
        verify_emails();
