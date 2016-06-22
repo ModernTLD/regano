@@ -29,7 +29,10 @@ use warnings;
 use Config::General;
 use DBI;
 
+use WWW::Mechanize;
+
 our %config = (
+  InstanceBase  => 'http://localhost:3000',
   dsn           => 'dbi:Pg:db=regano',
   user          => '',
   password      => '',
@@ -43,15 +46,36 @@ our %config = (
     my %contents = $reader->getall();
     my $confkey = (grep {m/^DB,/} keys %{$contents{Model}})[0];
     my $dbconf = $contents{Model}{$confkey};
+    $config{InstanceBase} = $contents{InstanceBase} if $contents{InstanceBase};
     $config{$_} = $dbconf->{$_} for keys %$dbconf;
 }
+
+our @URLS = ();
 
 sub send_verify ($$$$) {
     my ($email, $name, $vid, $vkey) = @_;
 
-    print "verify/$vid/$vkey for $email\n";
+    print "$email:\n  $config{InstanceBase}/verify/$vid/$vkey\n";
+    push @URLS, join('/', $config{InstanceBase}, 'verify', $vid, $vkey);
 
     return 1;
+}
+
+sub verify_emails () {
+    my $mech = WWW::Mechanize->new();
+
+    while (@URLS) {
+	$mech->get($URLS[-1]);
+	print "$URLS[-1]: ";
+	if ($mech->text() =~ m/Contact verified successfully\./) {
+	    print "success\n";
+	} elsif ($mech->text() =~ m/Contact verification failed\./) {
+	    print "failure\n";
+	} else {
+	    print "???\n";
+	}
+	pop @URLS;
+    }
 }
 
 # adapted from DBD::Pg manual
@@ -90,6 +114,7 @@ sub send_verify ($$$$) {
 	       $dbh->commit;
 	   }
        }
+       verify_emails();
        $dbh->ping or redo DBHLOOP;
        { # adapted from example in perlfunc
 	   my ($rin, $win, $ein, $rout, $wout, $eout, $bits);
