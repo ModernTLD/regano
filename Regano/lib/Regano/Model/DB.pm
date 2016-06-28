@@ -23,6 +23,27 @@ See L<Regano>
 
 This is the database glue module for Regano.
 
+=head1 METHODS
+
+=head2 bailiwick_tails
+
+Get a reference to an array of known domain tails.
+
+=cut
+
+sub bailiwick_tails {
+    my $self = shift;
+    my $dbh = $self->dbh;
+    my $sth = $dbh->prepare_cached
+	(q[SELECT domain_tail FROM regano.bailiwicks]);
+    $sth->execute;
+    my (@bailiwicks, $tail);
+    $sth->bind_columns(\$tail);
+    push @bailiwicks, $tail while $sth->fetch;
+
+    return \@bailiwicks;
+}
+
 =head1 AUTHOR
 
 Pathore

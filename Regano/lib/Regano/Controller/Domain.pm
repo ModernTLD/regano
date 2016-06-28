@@ -24,12 +24,7 @@ Catalyst Controller.
 sub index :Path :Args(0) {
     my ( $self, $c ) = @_;
 
-    my $sth = $c->model('DB')->dbh->prepare_cached
-	(q[SELECT domain_tail FROM regano.bailiwicks]);
-    $sth->execute;
-    my (@bailiwicks, $row);
-    push @bailiwicks, $row->[0] while $row = $sth->fetchrow_arrayref;
-    $c->stash( bailiwicks => \@bailiwicks );
+    $c->stash( bailiwicks => $c->model('DB')->bailiwick_tails );
 
     my $domain = $c->request->params->{name} . $c->request->params->{tail};
     if ($domain) {
