@@ -62,6 +62,7 @@ sub index :Path :Args(0) {
 	# return account summary page
 	my $dbsession = $c->session->{dbsession};
 	$c->stash( template => 'registrar/overview.tt',
+		   bailiwicks => $c->model('DB')->bailiwick_tails,
 		   user_info => $c->model('DB::API')->user_info($dbsession),
 		   contacts => $c->model('DB::API')->contact_list($dbsession),
 		   domains => $c->model('DB::API')->domain_list($dbsession),
