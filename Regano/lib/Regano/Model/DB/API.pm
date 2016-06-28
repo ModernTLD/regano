@@ -64,6 +64,8 @@ my %METHODS = (
     'domain_register' => [ value => 'status', 'dbsession', 'name' ],
     'domain_renew' => [ value => 'expire', 'dbsession', 'name' ],
     'domain_release' => [ nothing => undef, 'dbsession', 'name' ],
+    'domain_set_default_ttl' => [ nothing => undef,
+				  'dbsession', 'name', 'ttl' ],
 );
 
 sub map_args {

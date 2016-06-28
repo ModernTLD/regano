@@ -44,6 +44,31 @@ sub bailiwick_tails {
     return \@bailiwicks;
 }
 
+=head2 domain_info
+
+Get an information record for a domain.
+
+=cut
+
+sub domain_info {
+    my $self = shift;
+    my $domain_name = shift;
+    my $dbh = $self->dbh;
+
+    my $domain_info_st = $dbh->prepare_cached
+	(q[SELECT id, domain_name||domain_tail AS name,
+		   regano_api.domain_status(domain_name||domain_tail) AS status,
+		   registered, expiration, last_update,
+		   default_ttl, owner_id
+	       FROM regano.domains
+	       WHERE lower(domain_name||domain_tail) = lower(?)]);
+    $domain_info_st->execute($domain_name);
+    my $row = $domain_info_st->fetchrow_hashref('NAME_lc');
+    1 while $domain_info_st->fetch;
+
+    return $row;
+}
+
 =head1 AUTHOR
 
 Pathore

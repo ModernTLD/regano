@@ -24,7 +24,9 @@ Catalyst Controller.
 sub auto :Private {
     my ( $self, $c ) = @_;
 
-    return 1 if defined $c->stash->{session};
+    return 1
+	if (defined $c->stash->{session}
+	    and defined $c->request->params->{domain_name});
 
     $c->response->redirect($c->uri_for_action('/registrar/index'));
     return 0;
@@ -42,11 +44,54 @@ sub index :Path :Args(0) {
 
 =head2 manage
 
-Display domain management page.
+Display domain management page and handle updates.
 
 =cut
 
 sub manage :Local :Args(0) POST {
+    my ( $self, $c ) = @_;
+
+    my $dbsession = $c->session->{dbsession};
+    my $action = $c->request->params->{action};
+    my $domain_name = $c->request->params->{domain_name};
+    my $domain_info = $c->model('DB')->domain_info($domain_name);
+    my $user_info = $c->model('DB::API')->user_info($dbsession);
+
+    unless ($domain_info->{owner_id} == $user_info->{id}) {
+	$c->response->redirect($c->uri_for_action('/registrar/index'));
+	return;
+    }
+
+    $c->stash( name => $domain_name,
+	       domain => $domain_info,
+	       user => $user_info,
+	       status => $c->session->{messages} );
+    delete $c->session->{messages};
+
+    if (defined $c->request->params->{default_ttl}
+	and $c->request->params->{default_ttl} ne $domain_info->{default_ttl}) {
+	eval {
+	    $c->model('DB::API')->domain_set_default_ttl($dbsession,
+							 $domain_name,
+							 $c->request->params->{default_ttl});
+	};
+	$c->stash( domain => $c->model('DB')->domain_info($domain_name) );
+    }
+
+    if (defined($action)) {
+	if ($action =~ m/^renew/i) {
+	    eval {
+		$c->model('DB::API')->domain_renew($dbsession, $domain_name)
+	    };
+	    $c->stash( domain => $c->model('DB')->domain_info($domain_name) );
+	}
+	if ($action =~ m/^release/i) {
+	    eval {
+		$c->model('DB::API')->domain_release($dbsession, $domain_name)
+	    };
+	    $c->stash( domain => $c->model('DB')->domain_info($domain_name) );
+	}
+    }
 }
 
 =head2 register

@@ -1,0 +1,120 @@
+[%# <!-- This -*- HTML -*- template is part of Regano.
+	 Regano is free software and may be redistributed and/or modified
+	 under the same terms as Perl itself. --> ~%]
+
+[% META
+   title = 'Regano Domain Management'
+   style = "body { z-index: 1; }
+.has-help { position: relative; top: 0; }
+.has-help > .help {
+    background-color: white;
+    border: 1px solid black;
+    display: none;
+    position: absolute;
+    top: 2em;
+    z-index: 2;
+}
+.has-help > .help > p {
+    background-color: #def;
+    border: 1px solid black;
+}
+.has-help:hover > .help { display: block }
+
+.infotable .infotop { text-align: center }
+.infotable th { text-align: right }
+.infotable td { text-align: center }
+" %]
+[%~ navPage = [ 'registrar' 'domain' domain_name ] ~%]
+[%# <!-- To be wrapped inside "main-copy" div. --> -%]
+<h1>[% regano.config.InstanceName | html %] registry &mdash; Manage Domain &mdash; [% name %]</h1>
+
+[% IF status -%]
+<div style="margin: 3em; text-align: center">
+  [% FOREACH message IN status -%]
+  [% SWITCH message.0 -%]
+  [%   CASE "" -%]
+  [% END ~%]
+  [% END ~%]
+</div>
+[% END ~%]
+
+<form action="[% regano.uri_for_action('/registrar/domain/manage') %]" method="POST">
+  <input type="hidden" name="domain_name" value="[% name %]">
+  <table class="infotable" style="margin: 1em 5em">
+    <tr>
+      <th class="infotop" colspan="2">[% name %]</th>
+    </tr>
+    <tr>
+      <th>Status</th>
+      <td [%= SWITCH domain.status ~%]
+	  [%~  CASE "REGISTERED" ~%] style="color: green"
+	  [%~  CASE "EXPIRED"	 ~%] style="color: red"
+	  [%~ END %]>[% domain.status %]
+	[%~ IF domain.status == "EXPIRED" ~%]
+	<input type="submit" name="action" value="Renew Now">
+	[%~ END ~%]
+      </td>
+    </tr>
+    <tr>
+      <th>Expiration</th>
+      <td>[% domain.expiration %]</td>
+    </tr>
+    <tr>
+      <th>Registered</th>
+      <td>[% domain.registered %]</td>
+    </tr>
+    <tr>
+      <th>Last Modified</th>
+      <td>[% domain.last_update %]</td>
+    </tr>
+    <tr>
+      <th rowspan="2">Actions</th>
+      <td><div class="has-help">
+	  <input type="submit" name="action" value="Renew">
+	  <div class="help">
+	    <p>Renewing a domain extends the expiration to one full domain
+	      term from now.</p>
+	  </div>
+	</div>
+      </td>
+    </tr>
+    <tr>
+      <td><div class="has-help">
+	  <input type="submit" name="action" value="Release">
+	  <div class="help">
+	    <p>Releasing a domain causes the registration to expire
+	      immediately.  You can still change your mind within the
+	      expiration grace period, but the domain will be available for
+	      anyone to register after that.</p>
+	  </div>
+	</div>
+      </td>
+    </tr>
+    <tr>
+      <th><label for="default-ttl">Default TTL</label></th>
+      <td><div class="has-help">
+	  <input type="text" id="default-ttl" size="20"
+		 name="default_ttl" value="[% domain.default_ttl %]">
+	  <input type="submit" name="action" value="Update TTL">
+	  <div class="help">
+	    <p>The default TTL is used for records that do not specify a
+	      TTL.  The TTL is the amount of time that a cached copy of the
+	      record remains valid.  Any of the formats accepted by the
+	      database may be used to enter a value.  Intervals less than a
+	      day are displayed as HH:MM:SS.</p>
+	  </div>
+	</div>
+      </td>
+    </tr>
+  </table>
+  [% FOREACH record IN records %]
+  <table style="margin: 1em 5em">
+  </table>
+  [% END %]
+  <input type="reset" value="Reset Form">
+</form>
+
+<!--  LocalWords:  regano InstanceName html navPage FOREACH infotable infotop
+ -->
+<!--  LocalWords:  th px td TTL HH
+ -->
