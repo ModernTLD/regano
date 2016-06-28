@@ -21,10 +21,13 @@ Database bridge for DNS zone records
 
 =head2 records_for_domain
 
-Return arrayref of hashes representing records for the named domain.
+Return arrayref of hashes representing records for the named domain and a
+hashref of metadata for the domain itself.
 
 Each hash contains name/class/type/ttl, and a data key that holds a hash
 with the fields and values for this record.
+
+The second value returned contains the default TTL and zone serial number.
 
 =cut
 
@@ -56,7 +59,7 @@ sub records_for_domain {
     my ( $domain_id, $default_ttl, $serial ) = $dbh->selectrow_array
 	($get_domain_info_st, {}, $zone_name);
 
-    return [] unless defined $domain_id;
+    return [], {} unless defined $domain_id;
 
     {
 	$get_records_st->execute($domain_id);
@@ -88,7 +91,7 @@ sub records_for_domain {
 	    $records[$seq_no] = { name => $name,
 				  class => $class,
 				  type => $type,
-				  ttl => defined($ttl) ? $ttl : $default_ttl };
+				  ttl => $ttl };
 	    if (($type eq 'CNAME')||($type eq 'DNAME')
 		||($type eq 'NS') ||($type eq 'PTR')) {
 		$records[$seq_no]->{data} = { name => $data_name }
@@ -125,7 +128,8 @@ sub records_for_domain {
 	}
     }
 
-    return \@records;
+    return \@records, {default_ttl => $default_ttl,
+		       serial => $serial};
 }
 
 =head1 AUTHOR

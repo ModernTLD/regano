@@ -3,6 +3,7 @@
     under the same terms as Perl itself. ~%]
 
 $ORIGIN [% zone.name %]
+$TTL [% zone.default_ttl %]
 
 [% FOREACH record IN zone.records -%]
 [% record.name %]	[% record.ttl %]	[% record.class -%]

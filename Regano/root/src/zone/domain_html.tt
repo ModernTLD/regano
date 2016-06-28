@@ -22,6 +22,14 @@
 
 <table style="margin: 1em 5em">
   <tr>
+    <th>$ORIGIN</th>
+    <td>[% zone.name %]</td>
+  </tr>
+  <tr>
+    <th>$TTL</th>
+    <td>[% zone.default_ttl %]</td>
+  </tr>
+  <tr>
     <th>Name</th>
     <th>TTL</th>
     <th>Class</th>

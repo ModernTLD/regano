@@ -55,10 +55,12 @@ sub zone :Path :Args(1) {
 
     if ($type eq 'REGISTERED') {
 	# return records for single domain
-	my $records = $c->model('DB::Zone')->records_for_domain($zone_name);
+	my ($records, $zone_info) =
+	    $c->model('DB::Zone')->records_for_domain($zone_name);
 	shift @$records unless exists $records->[0];
 	$c->stash( template => 'zone/domain_'.$format.'.tt',
 		   zone => { name => $zone_name,
+			     default_ttl => $zone_info->{default_ttl},
 			     records => $records } );
     } elsif ($type eq 'BAILIWICK') {
 	# return bailiwick zone
