@@ -90,6 +90,7 @@ sub records_for_domain {
 	    $types{$type}++;
 	    $records[$seq_no] = { name => $name,
 				  class => $class,
+				  seq_no => $seq_no,
 				  type => $type,
 				  ttl => $ttl };
 	    if (($type eq 'CNAME')||($type eq 'DNAME')

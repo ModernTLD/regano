@@ -38,6 +38,8 @@ has 'InstanceDescription' => ( is => 'ro', isa => 'Str' );
 
 has 'TopBarLink' => ( is => 'ro', isa => 'Str | ArrayRef[Str]' );
 
+has 'RRTypes' => ( is => 'ro', isa => 'ArrayRef[Str]' );
+
 # Configure the application.
 #
 # Note that settings in regano.conf (or other external
@@ -54,6 +56,10 @@ __PACKAGE__->config(
     enable_catalyst_header => 1, # Send X-Catalyst header
     InstanceName => 'Regano',
     InstanceDescription => 'unconfigured',
+);
+__PACKAGE__->config(
+    # This must match regano.dns_record_type in db_types.sql.
+    RRTypes => [qw/SOA A AAAA CNAME DNAME DS MX NS PTR SPF SRV TXT/],
 );
 __PACKAGE__->config(
     # Configure the view

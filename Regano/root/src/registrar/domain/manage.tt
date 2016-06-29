@@ -5,13 +5,15 @@
 [% META
    title = 'Regano Domain Management'
    style = "body { z-index: 1; }
-.has-help { position: relative; top: 0; }
+.has-help { position: relative; top: 0; left: 0; }
 .has-help > .help {
     background-color: white;
     border: 1px solid black;
     display: none;
     position: absolute;
-    top: 2em;
+    top: -100%;
+    left: 100%;
+    width: 120%;
     z-index: 2;
 }
 .has-help > .help > p {
@@ -23,6 +25,9 @@
 .infotable .infotop { text-align: center }
 .infotable th { text-align: right }
 .infotable td { text-align: center }
+
+td > table { width: 100% }
+td > input[type='text'] { width: 100% }
 " %]
 [%~ navPage = [ 'registrar' 'domain' domain_name ] ~%]
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
@@ -32,7 +37,25 @@
 <div style="margin: 3em; text-align: center">
   [% FOREACH message IN status -%]
   [% SWITCH message.0 -%]
-  [%   CASE "" -%]
+  [%   CASE "dberr" -%]
+  <div class="notify_errors">
+    The database reported an error: [% message.1 %]
+  </div>
+  [%   CASE "default_ttl_changed" %]
+  <div class="notify_success">
+    The default TTL for [% name %] has been changed.
+  </div>
+  [%   CASE "edit_in_progress" %]
+  <div class="notify_notes">
+    <p>The displayed records reflect edits in this session that have not yet
+    been published.</p>
+    <p><a href="[% regano.uri_for_action('/zone/index',name) %]">Currently
+    published records for this zone</a></p>
+  </div>
+  [%   CASE "publish_error" -%]
+  <div class="notify_errors">
+    An error occurred while publishing record [% message.1 %]: [% message.2 %]
+  </div>
   [% END ~%]
   [% END ~%]
 </div>
@@ -40,36 +63,38 @@
 
 <form action="[% regano.uri_for_action('/registrar/domain/manage') %]" method="POST">
   <input type="hidden" name="domain_name" value="[% name %]">
-  <table class="infotable" style="margin: 1em 5em">
+  <table class="infotable" style="margin: 1em auto">
     <tr>
-      <th class="infotop" colspan="2">[% name %]</th>
+      <th class="infotop" colspan="6">[% name %]</th>
     </tr>
     <tr>
-      <th>Status</th>
+      <td rowspan="7" style="visibility: hidden"></td>
+      <th colspan="2">Status</th>
       <td [%= SWITCH domain.status ~%]
 	  [%~  CASE "REGISTERED" ~%] style="color: green"
 	  [%~  CASE "EXPIRED"	 ~%] style="color: red"
-	  [%~ END %]>[% domain.status %]
+	  [%~ END %] colspan="3">[% domain.status %]
 	[%~ IF domain.status == "EXPIRED" ~%]
 	<input type="submit" name="action" value="Renew Now">
 	[%~ END ~%]
       </td>
     </tr>
     <tr>
-      <th>Expiration</th>
-      <td>[% domain.expiration %]</td>
+      <th colspan="2">Expiration</th>
+      <td colspan="3">[% domain.expiration %]</td>
     </tr>
     <tr>
-      <th>Registered</th>
-      <td>[% domain.registered %]</td>
+      <th colspan="2">Registered</th>
+      <td colspan="3">[% domain.registered %]</td>
     </tr>
     <tr>
-      <th>Last Modified</th>
-      <td>[% domain.last_update %]</td>
+      <th colspan="2">Last Modified</th>
+      <td colspan="3">[% domain.last_update %]</td>
     </tr>
     <tr>
-      <th rowspan="2">Actions</th>
-      <td><div class="has-help">
+      <th colspan="2" rowspan="2">Actions</th>
+      <td colspan="3">
+	<div class="has-help">
 	  <input type="submit" name="action" value="Renew">
 	  <div class="help">
 	    <p>Renewing a domain extends the expiration to one full domain
@@ -79,7 +104,8 @@
       </td>
     </tr>
     <tr>
-      <td><div class="has-help">
+      <td colspan="3">
+	<div class="has-help">
 	  <input type="submit" name="action" value="Release">
 	  <div class="help">
 	    <p>Releasing a domain causes the registration to expire
@@ -91,8 +117,9 @@
       </td>
     </tr>
     <tr>
-      <th><label for="default-ttl">Default TTL</label></th>
-      <td><div class="has-help">
+      <th colspan="2"><label for="default-ttl">Default TTL</label></th>
+      <td colspan="3">
+	<div class="has-help">
 	  <input type="text" id="default-ttl" size="20"
 		 name="default_ttl" value="[% domain.default_ttl %]">
 	  <input type="submit" name="action" value="Update TTL">
@@ -106,15 +133,264 @@
 	</div>
       </td>
     </tr>
+    <tr><th colspan="6" class="infotop">Records</th></tr>
+    <tr>
+      <th>Delete</th>
+      <th colspan="2">Position</th>
+      <td colspan="2">
+	<input type="text" name="del_record_seq_no" value="1" size="4">
+      </td>
+      <td>
+	<input type="submit" name="action" value="Delete Record">
+      </td>
+    </tr>
+    <tr>
+      <th rowspan="2">Insert</th>
+      <th colspan="2">Position</th>
+      <td colspan="2">
+	<input type="text" name="ins_record_seq_no" value="1" size="4">
+      </td>
+      <td rowspan="2">
+	<input type="submit" name="action" value="Insert Record">
+      </td>
+    <tr>
+      <th colspan="2">Type</th>
+      <td colspan="2">
+	<select name="ins_record_type" size="1">
+	  [% FOREACH type IN regano.config.RRTypes %]
+	  [% IF type == "SOA" && records.0.type == "SOA" %]
+	  <!-- no more than one SOA record per zone -->
+	  [% ELSE %]
+	  <option[% IF type == 'A' =%]
+		    selected[% END %]>[% type %]</option>
+	  [% END %]
+	  [% END %]
+	</select>
+      </td>
+    </tr>
+    <tr>
+      <th class="infotop">Seq</th>
+      <th class="infotop">Name</th>
+      <th class="infotop">TTL</th>
+      <th class="infotop">Class</th>
+      <th class="infotop">Type</th>
+      <td style="border:none; background: none; text-align: right">
+	<input type="submit" name="action" value="Update">
+      </td>
+    </tr>
+    [% FOREACH record IN records %]
+    <tr>
+      <td>
+	[% IF record.type == "SOA" %]
+	0
+	[% ELSE %]
+	<input type="text" size="2"
+	       name="zone_r[% record.seq_no %]_seq_no"
+	       value="[% record.seq_no %]">
+	[% END %]
+      </td>
+      <td>
+	[% IF record.type == "SOA" %]
+	@
+	[% ELSE %]
+	<input type="text" size="10"
+	       name="zone_r[% record.seq_no %]_name"
+	       value="[% record.name %]">
+	[% END %]
+      </td>
+      <td>
+	<input type="text" size="5"
+	       name="zone_r[% record.seq_no %]_ttl"
+	       value="[% record.ttl %]">
+      </td>
+      <td>IN</td>
+      <td>
+	[% IF record.type == "SOA" %]
+	SOA
+	[% ELSE %]
+	<select name="zone_r[% record.seq_no %]_type" size="1">
+	  [% FOREACH type IN regano.config.RRTypes %]
+	  [% IF type != "SOA" %]
+	  <option[% IF type == record.type =%]
+		    selected[% END %]>[% type %]</option>
+	  [% END %]
+	  [% END %]
+	</select>
+	[% END %]
+      </td>
+      <td>
+	[% SWITCH record.type %]
+	[%   CASE ["A", "AAAA"] %]
+	<input type="text"
+	       name="zone_r[% record.seq_no %]_data"
+	       value="[% record.data.address %]">
+	[%   CASE ["CNAME", "DNAME", "NS", "PTR"] %]
+	<input type="text"
+	       name="zone_r[% record.seq_no %]_data"
+	       value="[% record.data.name %]">
+	[%   CASE ["SPF", "TXT"] %]
+	<input type="text"
+	       name="zone_r[% record.seq_no %]_data"
+	       value="[% record.data.text %]">
+	[%   CASE "DS" %]
+	<table>
+	  <tr>
+	    <th>Key Tag</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_DS_key_tag"
+		     value="[% record.data.key_tag %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Algorithm</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_DS_algorithm"
+		     value="[% record.data.algorithm %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Digest Type</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_DS_digest_type"
+		     value="[% record.data.digest_type %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Digest</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_DS_digest"
+		     value="[% record.data.digest %]">
+	    </td>
+	  </tr>
+	</table>
+	[%   CASE "MX" %]
+	<table>
+	  <tr>
+	    <th>Preference</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_MX_preference"
+		     value="[% record.data.preference %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Exchange</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_MX_exchange"
+		     value="[% record.data.exchange %]">
+	    </td>
+	  </tr>
+	</table>
+	[%   CASE "SRV" %]
+	<table>
+	  <tr>
+	    <th>Priority</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_SRV_priority"
+		     value="[% record.data.priority %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Weight</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_SRV_weight"
+		     value="[% record.data.weight %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Port</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_SRV_port"
+		     value="[% record.data.port %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Target</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r[% record.seq_no %]_data_SRV_target"
+		     value="[% record.data.target %]">
+	    </td>
+	  </tr>
+	</table>
+	[%   CASE "SOA" %]
+	<table>
+	  <tr>
+	    <th>Zone</th>
+	    <td>[% name %]</td>
+	  </tr>
+	  <tr>
+	    <th>Mailbox</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r0_data_SOA_mbox"
+		     value="[% record.data.mbox %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Refresh</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r0_data_SOA_refresh"
+		     value="[% record.data.refresh %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Retry</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r0_data_SOA_retry"
+		     value="[% record.data.retry %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Expire</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r0_data_SOA_expire"
+		     value="[% record.data.expire %]">
+	    </td>
+	  </tr>
+	  <tr>
+	    <th>Minimum TTL</th>
+	    <td>
+	      <input type="text"
+		     name="zone_r0_data_SOA_minimum"
+		     value="[% record.data.minimum %]">
+	    </td>
+	  </tr>
+	</table>
+	[%   CASE DEFAULT %]
+	<p style="color: red; font-weight: bold">
+	  BUG: unknown record type [% record.type %]
+	</p>
+	[% END %]
+      </td>
+    </tr>
+    [% END %]
+    <tr>
+      <td colspan="6" style="border:none; background:none">
+	<input type="submit" name="action" value="Cancel Edit">
+	<input type="reset" value="Reset Form">
+	<input type="submit" name="action" value="Reload from database">
+	<input type="submit" name="action" value="Update">
+	<input type="submit" name="action" value="Publish">
+      </td>
+    </tr>
   </table>
-  [% FOREACH record IN records %]
-  <table style="margin: 1em 5em">
-  </table>
-  [% END %]
-  <input type="reset" value="Reset Form">
 </form>
 
 <!--  LocalWords:  regano InstanceName html navPage FOREACH infotable infotop
  -->
-<!--  LocalWords:  th px td TTL HH
+<!--  LocalWords:  th px td ttl HH CNAME DNAME DS MX PTR SRV TXT RRTypes SOA
+ -->
+<!--  LocalWords:  AAAA mbox dberr
  -->

@@ -16,6 +16,7 @@
 <ul>
   [% sidebar_link('overview','Overview','/registrar/index') %]
   [% sidebar_link('contacts','Contacts','/registrar/account/contacts') %]
+  [% sidebar_link('domain','Domain Edit','/registrar/index') %]
 </ul>
 
 [%# <!--  LocalWords:  navPage
