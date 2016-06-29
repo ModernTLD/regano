@@ -4,9 +4,6 @@
 
 [% META
    title = 'Regano Account Overview'
-   style = "
-.domain-actions > form { display: inline }
-"
  %]
 [%~ navPage = [ 'registrar' 'overview' ] ~%]
 [%# <!-- To be wrapped inside "main-copy" div. --> -%]
@@ -159,7 +156,7 @@
     <th>Registered</th>
     <th>Expiration</th>
     <th>Last Modified</th>
-    <th class="domain-actions-heading"></th>
+    <th style="visibility: hidden"></th>
   </tr>
   [% FOREACH domain IN domains %]
   <tr>
@@ -171,18 +168,10 @@
     <td>[% domain.registered %]</td>
     <td>[% domain.expiration %]</td>
     <td>[% domain.last_update %]</td>
-    <td class="domain-actions">
+    <td>
       <form action="[% regano.uri_for_action('/registrar/domain/manage') %]" method="POST">
 	<input type="hidden" name="domain_name" value="[% domain.name %]">
 	<input type="submit" value="Manage">
-      </form>
-      <form action="[% regano.uri_for_action('/registrar/domain/renew') %]" method="POST">
-	<input type="hidden" name="domain_name" value="[% domain.name %]">
-	<input type="submit" value="Renew">
-      </form>
-      <form action="[% regano.uri_for_action('/registrar/domain/release') %]" method="POST">
-	<input type="hidden" name="domain_name" value="[% domain.name %]">
-	<input type="submit" value="Release">
       </form>
     </td>
   </tr>
